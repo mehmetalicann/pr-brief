@@ -1,0 +1,15 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.5
+    hooks:
+      - id: ruff-check
+      - id: ruff-format
+  # Uses the gitleaks binary on PATH (winget/brew/release download). The pre-commit-built
+  # binary is blocked by Windows Application Control on the author's machine.
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: gitleaks git --pre-commit --staged --redact --no-banner
+        language: system
+        pass_filenames: false

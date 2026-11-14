@@ -1,0 +1,13 @@
+[extend]
+useDefault = true
+
+# PROJECT_SPEC.md quotes deliberately fake secrets as test samples (section 7.3).
+# Allow only these exact strings, and only in that file.
+[[allowlists]]
+description = "Fake example secrets in PROJECT_SPEC.md"
+condition = "AND"
+paths = ['''^PROJECT_SPEC\.md$''']
+regexes = [
+  '''eyJhbGciOiJIUzI1NiJ9\.eyJzdWIiOiIxMjM0In0\.abc123def456''',
+  '''sk-test-SECRET-1234567890abcdef''',
+]

@@ -1,0 +1,17 @@
+name: Bug report
+description: Something does not work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: Include the workflow YAML (without secrets) and relevant log lines.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: pr-brief version / provider
+    validations:
+      required: true
