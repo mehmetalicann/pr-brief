@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from pr_brief.core.filters import SkippedFile
 from pr_brief.core.i18n import t
 from pr_brief.core.schema import BriefOutput, CommitMessage
+from pr_brief.security.sanitize import sanitize_path
 
 MARKER = "<!-- pr-brief:v1 -->"
 PROJECT_URL = "https://github.com/mehmetalicann/pr-brief"
@@ -29,6 +30,7 @@ class RunStats:
     output_tokens: int
     omitted: tuple[str, ...] = ()
     truncated: tuple[str, ...] = ()
+    redactions: int = 0
 
 
 def render_comment(brief: BriefOutput, stats: RunStats, *, language: str) -> str:
@@ -87,17 +89,21 @@ def _details(summary: str, count: int | None, lines: list[str]) -> list[str]:
 
 
 def _run_details(stats: RunStats, language: str) -> list[str]:
+    # File names and model names come from the PR / the provider: make them inert first.
     lines = [f"- {t(language, 'files', analyzed=stats.analyzed, skipped=len(stats.skipped))}"]
-    lines += [f"  - `{s.path}` — {s.reason}" for s in stats.skipped]
+    lines += [f"  - `{sanitize_path(s.path)}` — {s.reason}" for s in stats.skipped]
     if stats.omitted:
-        paths = ", ".join(f"`{p}`" for p in stats.omitted)
+        paths = ", ".join(f"`{sanitize_path(p)}`" for p in stats.omitted)
         lines.append(f"- {t(language, 'omitted', paths=paths)}")
     if stats.truncated:
-        paths = ", ".join(f"`{p}`" for p in stats.truncated)
+        paths = ", ".join(f"`{sanitize_path(p)}`" for p in stats.truncated)
         lines.append(f"- {t(language, 'truncated', paths=paths)}")
+    if stats.redactions:
+        lines.append(f"- {t(language, 'redactions', count=stats.redactions)}")
+    provider, model = sanitize_path(stats.provider), sanitize_path(stats.model)
     lines += [
         f"- {t(language, 'chunks', chunks=stats.chunks)}",
-        f"- {t(language, 'model', provider=stats.provider, model=stats.model)}",
+        f"- {t(language, 'model', provider=provider, model=model)}",
         f"- {t(language, 'tokens', input=stats.input_tokens, output=stats.output_tokens)}",
     ]
     return lines

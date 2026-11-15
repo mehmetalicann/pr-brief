@@ -98,3 +98,37 @@ def test_medium_patch_keeps_only_reviewable_files(load_diff: Callable[[str], str
         "package-lock.json": "ignored by default",
         "assets/logo.png": "binary",
     }
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        ".env",
+        ".env.production",
+        "config/.env.local",
+        "certs/server.pem",
+        "keys/tls.key",
+        "deploy/id_rsa",
+        "deploy/id_ed25519.pub",
+        "home/.netrc",
+        ".npmrc",
+        "store/cert.p12",
+        "gcp/credentials.json",
+        "infra/terraform.tfstate",
+    ],
+)
+def test_sensitive_files_are_skipped_before_anything_else(path: str) -> None:
+    result = filter_files([file(path), file("src/ok.py")], ignore=[])
+    assert [f.path for f in result.kept] == ["src/ok.py"]
+    assert result.skipped[0].reason == "sensitive file (never sent)"
+
+
+def test_sensitive_wins_over_binary_and_ignore_reasons() -> None:
+    result = filter_files([file("a/server.pem", binary=True)], ignore=["*.pem"])
+    assert result.skipped[0].reason == "sensitive file (never sent)"
+
+
+def test_lookalike_names_are_not_sensitive() -> None:
+    names = ["src/environment.py", "docs/keyboard.md", "src/monkey.py", "src/envelope.py"]
+    result = filter_files([file(n) for n in names], ignore=[])
+    assert len(result.kept) == 4

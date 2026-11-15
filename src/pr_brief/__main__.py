@@ -28,8 +28,11 @@ from pr_brief.core.prompts import (
 from pr_brief.core.render import RunStats, render_comment, render_failure
 from pr_brief.core.schema import BriefOutput, ChunkSummary, parse_model
 from pr_brief.errors import ConfigError, PrBriefError, SchemaError
+from pr_brief.logging import get_logger, mask, register_secrets
 from pr_brief.providers.base import Provider
 from pr_brief.providers.registry import get_provider
+from pr_brief.security.redact import redact
+from pr_brief.security.sanitize import sanitize_brief, sanitize_path
 
 MAX_DIFF_CHARS = 5_000_000
 M = TypeVar("M", bound=BaseModel)
@@ -42,17 +45,32 @@ class _Usage:
     model: str = ""
 
 
-def run(diff_text: str, settings: Settings, provider: Provider, meta: PRMeta) -> str:
-    """Turn a unified diff into the comment Markdown. Raises `PrBriefError` on failure."""
+def run(
+    diff_text: str,
+    settings: Settings,
+    provider: Provider,
+    meta: PRMeta,
+    *,
+    repo: str | None = None,
+) -> str:
+    """Turn a unified diff into the comment Markdown. Raises `PrBriefError` on failure.
+
+    Order is a security property: redact (diff and PR text) -> parse -> filter -> chunk ->
+    provider -> sanitise the model output -> render. Nothing reaches the chunker or a provider
+    before it has been redacted. `repo` ("owner/name") is the only place links may point to.
+    """
     lang = settings.language
     if len(diff_text) > MAX_DIFF_CHARS:
         raise PrBriefError(
             "The diff is too large to process.",
             hint="split the pull request into smaller ones.",
         )
-    filtered = filter_files(parse_diff(diff_text), ignore=settings.ignore)
+    redacted = redact(diff_text)
+    meta, meta_redactions = _redact_meta(meta)
+    redactions = redacted.count + meta_redactions
+    filtered = filter_files(parse_diff(redacted.text), ignore=settings.ignore)
     if not filtered.kept:
-        reasons = ", ".join(f"`{s.path}` ({s.reason})" for s in filtered.skipped)
+        reasons = ", ".join(f"`{sanitize_path(s.path)}` ({s.reason})" for s in filtered.skipped)
         return render_failure(reasons, language=lang, headline="no_reviewable")
 
     budget = max(settings.max_input_tokens - RESERVED_TOKENS, 500)
@@ -78,7 +96,9 @@ def run(diff_text: str, settings: Settings, provider: Provider, meta: PRMeta) ->
             language=lang,
             skipped_note=note,
         )
-    brief = _complete(provider, prompt, BriefOutput, settings, usage, "brief")
+    brief = sanitize_brief(
+        _complete(provider, prompt, BriefOutput, settings, usage, "brief"), repo=repo
+    )
     stats = RunStats(
         analyzed=len(filtered.kept) - len(plan.omitted),
         skipped=filtered.skipped,
@@ -89,8 +109,24 @@ def run(diff_text: str, settings: Settings, provider: Provider, meta: PRMeta) ->
         output_tokens=usage.output_tokens,
         omitted=plan.omitted,
         truncated=plan.truncated,
+        redactions=redactions,
     )
-    return render_comment(brief, stats, language=lang)
+    # Last line of defence: nothing registered as a secret can ever be posted.
+    return mask(render_comment(brief, stats, language=lang))
+
+
+def _redact_meta(meta: PRMeta) -> tuple[PRMeta, int]:
+    title, body = redact(meta.title), redact(meta.body or "")
+    labels = [redact(label) for label in meta.labels]
+    count = title.count + body.count + sum(r.count for r in labels)
+    clean = PRMeta(
+        title=title.text,
+        body=body.text if meta.body else None,
+        base=meta.base,
+        head=meta.head,
+        labels=tuple(r.text for r in labels),
+    )
+    return clean, count
 
 
 def _describe(f: FileDiff) -> str:
@@ -139,6 +175,7 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     args = _parser().parse_args(argv)
+    register_secrets([env.get("PR_BRIEF_API_KEY", "").strip()])
     fail_hard = env.get("PR_BRIEF_FAIL_ON_ERROR", "").strip().lower() == "true"
     language = "en"
     try:
@@ -150,14 +187,15 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         fail_hard, language = settings.fail_on_error, settings.language
         diff_text = _read_diff(args.diff)
         meta = PRMeta(title=args.title, body=None, base=None, head=None)
-        print(run(diff_text, settings, get_provider(settings), meta))
+        print(run(diff_text, settings, get_provider(settings), meta, repo=args.repo))
         return 0
     except PrBriefError as exc:
         message = exc.user_message()
     except Exception as exc:
-        message = f"Unexpected {type(exc).__name__}."
+        message = f"Unexpected {type(exc).__name__}."  # never the exception text: it may leak
+    message = mask(message)
     print(render_failure(message, language=language))
-    print(f"pr-brief: {message}", file=sys.stderr)
+    get_logger().error(message)
     return 1 if fail_hard else 0
 
 
@@ -180,6 +218,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--model")
     p.add_argument("--language", choices=["en", "tr"])
     p.add_argument("--title", default="(local diff)", help="PR title to include in the prompt")
+    p.add_argument("--repo", help="owner/name; the only repository links in the output may use")
     p.add_argument(
         "--dry-run", action="store_true", help="accepted for clarity; local runs never publish"
     )

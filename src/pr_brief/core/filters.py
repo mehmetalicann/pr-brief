@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 from pr_brief.core.diff import FileDiff
+from pr_brief.security.patterns import SENSITIVE_FILE_GLOBS
 
 MAX_FILES = 200
 
@@ -73,7 +74,9 @@ def filter_files(files: Sequence[FileDiff], *, ignore: Sequence[str]) -> FilterR
     skipped: list[SkippedFile] = []
     for f in files:
         path = f.path
-        if f.is_binary:
+        if any(matches_glob(path, g) for g in SENSITIVE_FILE_GLOBS):
+            skipped.append(SkippedFile(path, "sensitive file (never sent)"))
+        elif f.is_binary:
             skipped.append(SkippedFile(path, "binary"))
         elif any(matches_glob(path, p) for p in DEFAULT_IGNORE):
             skipped.append(SkippedFile(path, "ignored by default"))

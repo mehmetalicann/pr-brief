@@ -15,6 +15,7 @@ STRINGS: dict[str, dict[str, str]] = {
         "files": "Files analyzed: {analyzed} · skipped: {skipped}",
         "omitted": "Not analyzed (too large for the input budget): {paths}",
         "truncated": "Truncated to fit the input budget: {paths}",
+        "redactions": "Secrets/PII masked before sending: {count}",
         "chunks": "Chunks: {chunks}",
         "model": "Provider: {provider} · model: `{model}`",
         "tokens": "Tokens: input {input} · output {output}",
