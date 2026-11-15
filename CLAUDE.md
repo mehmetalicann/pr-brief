@@ -17,6 +17,7 @@
 4. **Küçük commit'ler**, Conventional Commits (`feat:`, `fix:`, `test:`, `docs:`, `chore:`, `ci:`). **Yalnızca kullanıcı isteyince commit at.**
 5. **Önce sor:** yeni runtime bağımlılığı, genel config şeması değişikliği, güvenlik kuralı değişikliği, spec'te olmayan her şey.
 6. **Faz "bitti" tanımı:** `check` hedefi geçer (lint + tip + test + güvenlik taraması), dokümanlar güncel, Bölüm 9 kabul kriterleri sağlanmış.
+7. **Açık maddeler (zorunlu uyarı):** Yeni bir faza başlamadan önce `docs/PROGRESS.md` içindeki "Open items" bölümünü oku. Açık madde varsa, kullanıcı "continue" dese bile **önce** bunları listele, "önce bunları yapalım mı, yoksa bilerek devam mı edelim?" diye sor ve yanıt gelmeden yeni faza başlama. Kullanıcı bilerek devam derse maddeleri açık bırak ve fazın sonunda yine hatırlat. Biten maddeyi günlüğe tarihiyle taşı.
 
 ## Ortam
 - Windows 11 + Git Bash (MINGW64); `make` yok. Görev çalıştırıcı: **`just`** (`justfile`; spec'teki Makefile hedefleriyle aynı). Spec'te "make check" geçen yerde `just check` kullan.

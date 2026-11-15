@@ -2,6 +2,30 @@
 
 Short, dated record of what was done per phase. Details live in git history; rules and scope live in `PROJECT_SPEC.md`.
 
+## Open items (review before starting the next phase)
+
+Items that were not finished when their phase was closed. Before a new phase starts, the
+assistant must list these to the maintainer and ask whether to do them first. When one is done,
+move it to the log below with the date.
+
+1. **Phase 3 acceptance: live Ollama smoke test.** `tests/providers/test_ollama_live.py` is written
+   but has never run (Ollama was not installed on the development machine). Run
+   `RUN_LIVE=1 PR_BRIEF_LIVE_MODEL=llama3.2 .venv/Scripts/python -m pytest tests/providers/test_ollama_live.py -s`
+   after installing Ollama and pulling a model. Expect a valid brief; report model and result.
+2. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic, Gemini). Request
+   and response shapes follow the vendors' documented APIs and are covered by mocks only. Optional
+   check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
+3. **Maintainer action: GitHub e-mail privacy.** Settings → Emails: "Keep my email addresses
+   private" and "Block command line pushes that expose my email".
+
+## 2026-11-15 — Phase 3: Providers (done and committed; acceptance items 1–2 above are open)
+- Tests first (red, then green): one contract suite (`tests/providers/test_provider_contract.py`) runs against all four adapters with `httpx.MockTransport`: success and usage, host and timeout, key never in URL/body/errors, retry with 1 s/2 s backoff and `Retry-After` (capped 10 s), no retry on 401/403/4xx, timeouts, connection errors, non-JSON and odd shapes, empty answers, 1 MB response cap (streamed and by `Content-Length`), no redirects, base-URL rules. Request-shape tests per adapter, registry tests, and a pipeline test through the HTTP layer (repair path, no secret in any request body).
+- `providers/http.py` (shared `HttpProvider`), `ollama.py` (first, `/api/chat` with structured output), `openai_compat.py`, `anthropic.py`, `gemini.py` (key in `x-goog-api-key`, model name validated), `registry.py` with `get_provider(settings, transport=)`. `Provider.name` is now a read-only property in the protocol. New CLI flag `--base-url` (local runner).
+- Base-URL rules: `https` (or `http` for localhost only), no credentials/query/fragment; `anthropic` and `gemini` refuse a `base-url`; remote OpenAI-compatible endpoints require a key, localhost does not.
+- Live smoke test `tests/providers/test_ollama_live.py` (`RUN_LIVE=1`) is written but **not executed**: Ollama is not installed on this machine, so the acceptance item "RUN_LIVE=1 smoke test works locally with Ollama" is still open. Real vendor endpoints (OpenAI, Anthropic, Gemini) were not called either; shapes follow the vendors' documented APIs and are covered by mocks only.
+- Phase 4 requirement noted in `docs/security-model.md`: read `.pr-brief.yml` from the base branch, never from the PR head (it can set `base-url`).
+- `just check` passes; 464 tests (+4 skipped, 1 live deselected), coverage ≈ 99%. `docs/providers.md` written; README, CHANGELOG, security model updated.
+
 ## 2026-11-15 — Phase 2: Security layer (done; awaiting review and "continue")
 - Tests first (red, then green): `test_redact`, `test_sanitize`, `tests/security/{test_prompt_injection,test_output_exfiltration,test_token_leak}`, `tests/integration/test_redaction_order`.
 - `security/{patterns,redact,sanitize}`, `logging.py`; sensitive files (`.env*`, `*.pem`, `*.key`, `id_rsa*`, …) are dropped by `filters` with reason "sensitive file (never sent)".
