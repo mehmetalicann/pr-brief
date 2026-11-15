@@ -32,6 +32,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m venv .venv
+          # venv bundles old pip/setuptools with known CVEs; pip-audit flags them.
+          .venv/bin/python -m pip install --upgrade pip setuptools
           .venv/bin/python -m pip install -e ".[dev]"
       - name: just check
         run: .venv/bin/just check
