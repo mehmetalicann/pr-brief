@@ -1,0 +1,114 @@
+"""Settings: defaults < `.pr-brief.yml` < environment (`PR_BRIEF_*`) < explicit overrides."""
+
+from __future__ import annotations
+
+from collections.abc import Mapping
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from typing import Any, Literal
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
+
+from pr_brief.errors import ConfigError
+
+ENV_PREFIX = "PR_BRIEF_"
+DEFAULT_CONFIG_PATH = ".pr-brief.yml"
+MAX_CONFIG_BYTES = 64 * 1024
+
+ProviderName = Literal["mock", "ollama", "openai-compatible", "anthropic", "gemini"]
+
+
+class Settings(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    provider: ProviderName
+    model: str | None = None
+    api_key: SecretStr | None = None
+    base_url: str | None = None
+    language: Literal["en", "tr"] = "en"
+    max_input_tokens: int = Field(6000, ge=500, le=200_000)
+    max_output_tokens: int = Field(900, ge=100, le=16_000)
+    ignore: list[str] = Field(default_factory=list)
+    include_drafts: bool = False
+    dry_run: bool = False
+    fail_on_error: bool = False
+    config_path: str = DEFAULT_CONFIG_PATH
+    cache: bool = True
+    timeout_seconds: float = Field(60, gt=0, le=600)
+
+
+_FIELDS = frozenset(Settings.model_fields)
+
+
+def load_settings(
+    env: Mapping[str, str],
+    *,
+    base_dir: Path,
+    overrides: Mapping[str, object] | None = None,
+) -> Settings:
+    env_values: dict[str, Any] = {}
+    for name in _FIELDS:
+        raw = env.get(ENV_PREFIX + name.upper())
+        if raw is not None and raw.strip():
+            env_values[name] = raw.strip() if name != "ignore" else raw
+    config_path = str(env_values.get("config_path") or (overrides or {}).get("config_path") or "")
+    explicit = bool(config_path)
+    config_path = config_path or DEFAULT_CONFIG_PATH
+    file_values = _read_file(base_dir, config_path, explicit=explicit)
+    merged: dict[str, Any] = {**file_values, **env_values, **(overrides or {})}
+    if isinstance(merged.get("ignore"), str):
+        merged["ignore"] = [ln.strip() for ln in merged["ignore"].splitlines() if ln.strip()]
+    # The API key is read from the environment only (never from the repository file).
+    key = env.get(ENV_PREFIX + "API_KEY", "").strip()
+    if key:
+        merged["api_key"] = key
+    try:
+        return Settings.model_validate(merged)
+    except ValidationError as exc:
+        problems = "; ".join(
+            f"{'.'.join(str(p) for p in e['loc']) or 'settings'}: {e['msg']}" for e in exc.errors()
+        )
+        raise ConfigError(
+            f"Invalid configuration ({problems}).",
+            hint="see docs/configuration.md for the allowed values.",
+        ) from None
+
+
+def _read_file(base_dir: Path, config_path: str, *, explicit: bool) -> dict[str, Any]:
+    if (
+        PurePosixPath(config_path).is_absolute()
+        or PureWindowsPath(config_path).is_absolute()
+        or ".." in PurePosixPath(config_path.replace("\\", "/")).parts
+    ):
+        raise ConfigError(
+            "config-path must be a relative path inside the repository.",
+            hint="use a path like .pr-brief.yml.",
+        )
+    path = base_dir / config_path
+    if not path.is_file():
+        if explicit:
+            raise ConfigError(
+                f"Config file {config_path} was not found.",
+                hint="check the config-path input or remove it to use the default.",
+            )
+        return {}
+    if path.stat().st_size > MAX_CONFIG_BYTES:
+        raise ConfigError(f"Config file {config_path} is too large (limit 64 KiB).")
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError:
+        raise ConfigError(
+            f"Config file {config_path} is not valid YAML.",
+            hint="validate it with a YAML linter.",
+        ) from None
+    if data is None:
+        return {}
+    if not isinstance(data, dict):
+        raise ConfigError(f"Config file {config_path} must be a mapping of settings.")
+    out = {str(k).replace("-", "_"): v for k, v in data.items()}
+    if "api_key" in out:
+        raise ConfigError(
+            "api-key must not be set in the config file (api-key).",
+            hint="pass it via the action's api-key input from a repository secret.",
+        )
+    return out
