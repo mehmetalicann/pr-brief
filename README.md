@@ -22,7 +22,8 @@ The diff of a pull request is sent to **the LLM provider you configure**. The pr
 mask secrets and personal data before anything leaves the runner, but redaction is best effort and
 cannot guarantee that nothing sensitive is sent. If your code must not reach a third party, use a
 self-hosted model (for example Ollama) or do not enable the action on that repository.
-These protections are implemented in later phases; see the roadmap in `PROJECT_SPEC.md`.
+Redaction, prompt hardening and output sanitising are implemented and tested; the layers and their
+limits are described in [`docs/security-model.md`](docs/security-model.md).
 
 ## Security
 

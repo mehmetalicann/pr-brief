@@ -11,6 +11,10 @@ versioning: [SemVer](https://semver.org/).
   output schema with JSON extraction and one repair attempt, versioned prompts, Markdown renderer,
   settings loader (`.pr-brief.yml` + `PR_BRIEF_*` environment), mock provider and a local
   `--diff` runner (`just run-local`).
+- Security layer: secret/PII redaction that runs before parsing, chunking and any provider call;
+  sensitive files are never sent; hardened prompts (random delimiter, hidden-character and
+  look-alike-delimiter stripping); output sanitiser (no images/HTML, repo-only links, defused
+  mentions, flattened fields); secret-safe logger; `docs/security-model.md`.
 - Community and security files: `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CODEOWNERS`, issue-template
   config, and `docs/going-public.md`.
 

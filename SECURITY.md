@@ -34,5 +34,5 @@ unless you prefer to stay anonymous.
 
 ## Security model
 
-The threat model and the controls are documented in `docs/security-model.md` (added in a later
-phase).
+The threat model, the controls and their known limits are documented in
+[`docs/security-model.md`](docs/security-model.md).
