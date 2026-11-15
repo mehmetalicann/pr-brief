@@ -1,0 +1,10 @@
+diff --git a/src/app/greet.py b/src/app/greet.py
+index 1111111..2222222 100644
+--- a/src/app/greet.py
++++ b/src/app/greet.py
+@@ -1,2 +1,4 @@
+ def greet(name):
+-    return "Hello " + name
++    if not name:
++        raise ValueError("name required")
++    return f"Hello {name}"

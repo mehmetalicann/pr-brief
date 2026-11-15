@@ -1,8 +1,17 @@
 """Shared pytest fixtures. Live-LLM tests are skipped unless RUN_LIVE=1."""
 
 import os
+from collections.abc import Callable
+from pathlib import Path
 
 import pytest
+
+FIXTURES = Path(__file__).parent / "fixtures"
+
+
+@pytest.fixture
+def load_diff() -> Callable[[str], str]:
+    return lambda name: (FIXTURES / "diffs" / name).read_text(encoding="utf-8")
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
