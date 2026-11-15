@@ -13,6 +13,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
+from pr_brief.security.sanitize import clean_untrusted
+
 PROMPT_VERSION = "1"
 RESERVED_TOKENS = 1000  # budget kept free for system prompt, PR metadata and wrappers
 MAX_BODY_CHARS = 2000
@@ -129,7 +131,10 @@ def build_repair_prompt(
     return Prompt(
         _system(did, _BRIEF_TASK if kind == "brief" else _CHUNK_TASK, language),
         _wrap(
-            f"Your previous reply was rejected: {error}\nReturn a corrected JSON object.", data, did
+            f"Your previous reply was rejected: {clean_untrusted(error)}\n"
+            "Return a corrected JSON object.",
+            data,
+            did,
         ),
     )
 
@@ -139,6 +144,9 @@ def _system(did: str, task: str, language: Language) -> str:
 
 
 def _wrap(instruction: str, data: str, did: str) -> str:
+    # Everything between the tags is neutralised first: no look-alike delimiters, no hidden
+    # control/zero-width/bidi characters. The id is random per call, so it cannot be guessed.
+    data = clean_untrusted(data)
     return f"{instruction}\n\n<untrusted_data id={did}>\n{data}\n</untrusted_data id={did}>"
 
 
