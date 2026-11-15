@@ -180,7 +180,7 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
     language = "en"
     try:
         overrides: dict[str, object] = {"dry_run": True}  # local mode never publishes
-        for key in ("provider", "model", "language"):
+        for key in ("provider", "model", "language", "base_url"):
             if getattr(args, key) is not None:
                 overrides[key] = getattr(args, key)
         settings = load_settings(env, base_dir=Path.cwd(), overrides=overrides)
@@ -216,6 +216,7 @@ def _parser() -> argparse.ArgumentParser:
     p.add_argument("--diff", required=True, help="path to a unified diff (.patch)")
     p.add_argument("--provider", help="mock | ollama | openai-compatible | anthropic | gemini")
     p.add_argument("--model")
+    p.add_argument("--base-url", help="ollama / openai-compatible endpoint (https, or localhost)")
     p.add_argument("--language", choices=["en", "tr"])
     p.add_argument("--title", default="(local diff)", help="PR title to include in the prompt")
     p.add_argument("--repo", help="owner/name; the only repository links in the output may use")
