@@ -12,3 +12,11 @@ __pycache__/
 coverage.xml
 dist/
 build/
+
+# Local tooling / editor files
+.claude/settings.local.json
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
