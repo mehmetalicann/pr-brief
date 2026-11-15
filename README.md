@@ -12,7 +12,8 @@ a short summary, a suggested Conventional Commits message, and a risk/review che
 - **Safe by default.** Runs on `pull_request` (never `pull_request_target`), never checks out or
   executes the PR's code, and skips gracefully on fork PRs that have no secrets.
 - **Provider-independent.** One interface for Ollama, OpenAI-compatible APIs, Gemini and Anthropic,
-  with plain HTTP and a very small dependency set (`httpx`, `pydantic`, `pyyaml`).
+  with plain HTTP and a very small dependency set (`httpx`, `pydantic`, `pyyaml`);
+  see [`docs/providers.md`](docs/providers.md).
 - **Cheap.** Token budgets, file filtering, map-reduce chunking and caching.
 - **Never breaks your CI.** Errors produce a neutral message; the job only fails if you opt in.
 

@@ -15,6 +15,9 @@ versioning: [SemVer](https://semver.org/).
   sensitive files are never sent; hardened prompts (random delimiter, hidden-character and
   look-alike-delimiter stripping); output sanitiser (no images/HTML, repo-only links, defused
   mentions, flattened fields); secret-safe logger; `docs/security-model.md`.
+- Providers: Ollama, OpenAI-compatible, Anthropic and Gemini adapters on a shared HTTP layer
+  (base-URL rules, timeouts, two retries with backoff, 1 MB response cap, no redirects, safe
+  errors), registry, `--base-url` for the local runner, `docs/providers.md`.
 - Community and security files: `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CODEOWNERS`, issue-template
   config, and `docs/going-public.md`.
 
