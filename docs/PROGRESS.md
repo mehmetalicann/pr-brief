@@ -15,8 +15,11 @@ move it to the log below with the date.
 2. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic, Gemini). Request
    and response shapes follow the vendors' documented APIs and are covered by mocks only. Optional
    check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
-3. **Maintainer action: GitHub e-mail privacy.** Settings → Emails: "Keep my email addresses
-   private" and "Block command line pushes that expose my email".
+   Status 2026-11-15: maintainer will try later with a Gemini API key from Google AI Studio; Phase 4
+   starts without it (conscious decision), remind again at the end of Phase 4.
+
+## 2026-11-15 — Open item closed
+- GitHub e-mail privacy settings ("Keep my email addresses private", "Block command line pushes that expose my email") enabled by the maintainer.
 
 ## 2026-11-15 — Phase 3: Providers (done and committed; acceptance items 1–2 above are open)
 - Tests first (red, then green): one contract suite (`tests/providers/test_provider_contract.py`) runs against all four adapters with `httpx.MockTransport`: success and usage, host and timeout, key never in URL/body/errors, retry with 1 s/2 s backoff and `Retry-After` (capped 10 s), no retry on 401/403/4xx, timeouts, connection errors, non-JSON and odd shapes, empty answers, 1 MB response cap (streamed and by `Content-Length`), no redirects, base-URL rules. Request-shape tests per adapter, registry tests, and a pipeline test through the HTTP layer (repair path, no secret in any request body).
