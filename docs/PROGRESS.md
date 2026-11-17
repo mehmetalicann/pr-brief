@@ -8,15 +8,16 @@ Items that were not finished when their phase was closed. Before a new phase sta
 assistant must list these to the maintainer and ask whether to do them first. When one is done,
 move it to the log below with the date.
 
-1. **Phase 3 acceptance: live Ollama smoke test.** `tests/providers/test_ollama_live.py` is written
-   but has never run (Ollama was not installed on the development machine). Run
-   `RUN_LIVE=1 PR_BRIEF_LIVE_MODEL=llama3.2 .venv/Scripts/python -m pytest tests/providers/test_ollama_live.py -s`
-   after installing Ollama and pulling a model. Expect a valid brief; report model and result.
-2. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic, Gemini). Request
+1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic, Gemini). Request
    and response shapes follow the vendors' documented APIs and are covered by mocks only. Optional
    check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
    Status 2026-11-15: maintainer will try later with a Gemini API key from Google AI Studio; Phase 4
    starts without it (conscious decision), remind again at the end of Phase 4.
+   (This was item 2; it is now the only open item.)
+
+## 2026-11-17 — Open item closed: live Ollama smoke test
+- Ollama 0.40.16 + `llama3.2` (2.0 GB): `RUN_LIVE=1 PR_BRIEF_LIVE_MODEL=llama3.2 pytest tests/providers/test_ollama_live.py -s` passes (1 passed, ~18 s). The model returned a schema-valid brief for `small.patch` (1 chunk, 498 input / 399 output tokens). Phase 3 acceptance criterion met.
+- Test fix: `print(md)` crashed on the default Windows console (cp1254, emoji); it now prints an ASCII-safe copy.
 
 ## 2026-11-15 — Open item closed
 - GitHub e-mail privacy settings ("Keep my email addresses private", "Block command line pushes that expose my email") enabled by the maintainer.
