@@ -37,7 +37,8 @@ def test_real_ollama_writes_a_valid_brief(load_diff: Callable[[str], str], tmp_p
     )
     meta = PRMeta(title="Validate greet() input", body=None, base="main", head="feature")
     md = run(load_diff("small.patch"), settings, provider, meta)
-    print(md)
+    # Legacy Windows consoles (cp1254) cannot print emoji.
+    print(md.encode("ascii", "replace").decode("ascii"))
     assert md.startswith(MARKER)
     assert "### Suggested commit message" in md
     assert "Could not generate a brief" not in md
