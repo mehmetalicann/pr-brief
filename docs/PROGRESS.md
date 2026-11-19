@@ -13,13 +13,13 @@ move it to the log below with the date.
    check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
    Status 2026-11-15: maintainer will try later with a Gemini API key from Google AI Studio; Phase 4
    starts without it (conscious decision), remind again at the end of Phase 4.
-2. **Phase 4: not yet run on a real GitHub runner.** Everything is tested against a fake GitHub
-   API, but `action.yml` (install from `requirements.lock`, `actions/cache`, composite env
-   mapping) and the acceptance criterion "opening a PR in a sandbox repo yields exactly one
-   comment; a new push updates it" need one real run. The `action-smoke` CI job (mock provider,
-   dry run) covers the install path on the first pull request.
 
-## 2026-11-19 - Phase 4: GitHub integration and packaging (implemented, not committed)
+## 2026-11-19 - Open item closed: Phase 4 on a real GitHub runner
+- Committed and pushed Phase 4 (main CI green: `check` 3.11/3.12). Sandbox PR #1 on this repo (mock provider through `dogfood.yml`, temporary repository variables): the first run created exactly one comment by `github-actions[bot]`; a second push updated the same comment (same id, later `updated_at`), the result cache was restored from the previous run, and `action-smoke` was green. PR closed, branch and variables deleted.
+- Fork/secret-less behaviour is covered by tests only (needs a second GitHub account to try for real).
+- Also checked `claude doctor`: auto-updates were already enabled; the earlier `install_failed` was the running executable on Windows, `claude update` downloaded 2.1.328 (active after a restart).
+
+## 2026-11-19 - Phase 4: GitHub integration and packaging (done, pushed)
 - Decision at the start: continued with the Gemini/OpenAI/Anthropic real-endpoint check still open (item 1); remind again now.
 - Tests first (red, then green): `test_github_client`, `test_comments`, `test_event`, `test_cache`, `test_action_yml`, `tests/integration/{test_github_action,test_fork_pr}` and config-loader cases, all against a fake GitHub API (`tests/_support/github_fake.py`).
 - `github/{client,comments,context}.py`, `cache.py`, `action.py` (`python -m pr_brief --github`), `action.yml` (composite), `requirements.lock` (hash-locked, generated with Python 3.12 via `just lock`), `.github/workflows/dogfood.yml` (off unless `vars.PR_BRIEF_DOGFOOD == 'true'`, checks out the base commit because it holds a secret), `action-smoke` job in `ci.yml`, `docs/action.md`.
