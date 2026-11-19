@@ -20,6 +20,12 @@ versioning: [SemVer](https://semver.org/).
   errors), registry, `--base-url` for the local runner, `docs/providers.md`.
 - Community and security files: `SECURITY.md`, `CODE_OF_CONDUCT.md`, `CODEOWNERS`, issue-template
   config, and `docs/going-public.md`.
+- GitHub integration and packaging: REST client (token only in the `Authorization` header, no
+  redirects, size caps), marker-based comment upsert (one comment per PR, edited in place),
+  `action.yml` (composite, hash-locked `requirements.lock`, workspace isolated from the run),
+  config read from the base commit, graceful skip for forks, drafts and other events, step
+  summary, result cache for identical input, `dogfood.yml` and an `action-smoke` CI job,
+  `docs/action.md`.
 
 ### Fixed
 - CI: upgrade the venv's bundled pip/setuptools before `pip-audit`.

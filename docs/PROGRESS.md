@@ -13,7 +13,20 @@ move it to the log below with the date.
    check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
    Status 2026-11-15: maintainer will try later with a Gemini API key from Google AI Studio; Phase 4
    starts without it (conscious decision), remind again at the end of Phase 4.
-   (This was item 2; it is now the only open item.)
+2. **Phase 4: not yet run on a real GitHub runner.** Everything is tested against a fake GitHub
+   API, but `action.yml` (install from `requirements.lock`, `actions/cache`, composite env
+   mapping) and the acceptance criterion "opening a PR in a sandbox repo yields exactly one
+   comment; a new push updates it" need one real run. The `action-smoke` CI job (mock provider,
+   dry run) covers the install path on the first pull request.
+
+## 2026-11-19 - Phase 4: GitHub integration and packaging (implemented, not committed)
+- Decision at the start: continued with the Gemini/OpenAI/Anthropic real-endpoint check still open (item 1); remind again now.
+- Tests first (red, then green): `test_github_client`, `test_comments`, `test_event`, `test_cache`, `test_action_yml`, `tests/integration/{test_github_action,test_fork_pr}` and config-loader cases, all against a fake GitHub API (`tests/_support/github_fake.py`).
+- `github/{client,comments,context}.py`, `cache.py`, `action.py` (`python -m pr_brief --github`), `action.yml` (composite), `requirements.lock` (hash-locked, generated with Python 3.12 via `just lock`), `.github/workflows/dogfood.yml` (off unless `vars.PR_BRIEF_DOGFOOD == 'true'`, checks out the base commit because it holds a secret), `action-smoke` job in `ci.yml`, `docs/action.md`.
+- Config is read through the API at the base commit SHA (new `config_loader` hook in `load_settings`); a head-branch config is never requested (tested).
+- Fork PRs under `pull_request`, drafts (unless `include-drafts`) and unrelated events end with exit 0 and a summary notice; read-only token, missing key and provider errors fail soft; `fail-on-error` returns 1.
+- Spec deviations/choices: cache key also covers language, PR text, repository, limits and ignore globs (stricter than the spec's diff + prompt version + model); only comments by `github-actions[bot]` that start with the marker are updated; bot-PR skipping (optional in L7) is not implemented; `pip-tools` added as a dev dependency; new `--github` CLI flag.
+- `just check` passes: 580 tests (+4 skipped, 1 live deselected), coverage ~98%, bandit, pip-audit, gitleaks clean.
 
 ## 2026-11-17 — Open item closed: live Ollama smoke test
 - Ollama 0.40.16 + `llama3.2` (2.0 GB): `RUN_LIVE=1 PR_BRIEF_LIVE_MODEL=llama3.2 pytest tests/providers/test_ollama_live.py -s` passes (1 passed, ~18 s). The model returned a schema-valid brief for `small.patch` (1 chunk, 498 input / 399 output tokens). Phase 3 acceptance criterion met.
