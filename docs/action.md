@@ -70,3 +70,5 @@ sanitised brief JSON is stored; the cache holds no secret and no raw diff.
 The action installs the three runtime dependencies from `requirements.lock` with
 `pip --require-hashes`, runs Python 3.12 from a neutral directory with `PYTHONSAFEPATH=1`, and
 all third-party actions are pinned to commit SHAs. Regenerate the lock file with `just lock`.
+
+<!-- sandbox e2e marker: temporary change, never merged -->
