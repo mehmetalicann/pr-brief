@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Literal
 
@@ -45,7 +45,11 @@ def load_settings(
     *,
     base_dir: Path,
     overrides: Mapping[str, object] | None = None,
+    config_loader: Callable[[str], str | None] | None = None,
 ) -> Settings:
+    """`config_loader(path)` returns the config file's text (None if absent) instead of reading
+    `base_dir`; the GitHub mode uses it to read the file from the base commit, never the PR head.
+    """
     env_values: dict[str, Any] = {}
     for name in _FIELDS:
         raw = env.get(ENV_PREFIX + name.upper())
@@ -54,7 +58,7 @@ def load_settings(
     config_path = str(env_values.get("config_path") or (overrides or {}).get("config_path") or "")
     explicit = bool(config_path)
     config_path = config_path or DEFAULT_CONFIG_PATH
-    file_values = _read_file(base_dir, config_path, explicit=explicit)
+    file_values = _read_file(base_dir, config_path, explicit=explicit, loader=config_loader)
     merged: dict[str, Any] = {**file_values, **env_values, **(overrides or {})}
     if isinstance(merged.get("ignore"), str):
         merged["ignore"] = [ln.strip() for ln in merged["ignore"].splitlines() if ln.strip()]
@@ -74,7 +78,13 @@ def load_settings(
         ) from None
 
 
-def _read_file(base_dir: Path, config_path: str, *, explicit: bool) -> dict[str, Any]:
+def _read_file(
+    base_dir: Path,
+    config_path: str,
+    *,
+    explicit: bool,
+    loader: Callable[[str], str | None] | None,
+) -> dict[str, Any]:
     if (
         PurePosixPath(config_path).is_absolute()
         or PureWindowsPath(config_path).is_absolute()
@@ -84,18 +94,18 @@ def _read_file(base_dir: Path, config_path: str, *, explicit: bool) -> dict[str,
             "config-path must be a relative path inside the repository.",
             hint="use a path like .pr-brief.yml.",
         )
-    path = base_dir / config_path
-    if not path.is_file():
+    text = loader(config_path) if loader else _read_local(base_dir / config_path)
+    if text is None:
         if explicit:
             raise ConfigError(
                 f"Config file {config_path} was not found.",
                 hint="check the config-path input or remove it to use the default.",
             )
         return {}
-    if path.stat().st_size > MAX_CONFIG_BYTES:
+    if len(text.encode("utf-8")) > MAX_CONFIG_BYTES:
         raise ConfigError(f"Config file {config_path} is too large (limit 64 KiB).")
     try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+        data = yaml.safe_load(text)
     except yaml.YAMLError:
         raise ConfigError(
             f"Config file {config_path} is not valid YAML.",
@@ -112,3 +122,11 @@ def _read_file(base_dir: Path, config_path: str, *, explicit: bool) -> dict[str,
             hint="pass it via the action's api-key input from a repository secret.",
         )
     return out
+
+
+def _read_local(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    if path.stat().st_size > MAX_CONFIG_BYTES:
+        raise ConfigError(f"Config file {path.name} is too large (limit 64 KiB).")
+    return path.read_text(encoding="utf-8")

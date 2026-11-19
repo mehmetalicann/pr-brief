@@ -31,6 +31,7 @@ class RunStats:
     omitted: tuple[str, ...] = ()
     truncated: tuple[str, ...] = ()
     redactions: int = 0
+    cached: bool = False
 
 
 def render_comment(brief: BriefOutput, stats: RunStats, *, language: str) -> str:
@@ -100,6 +101,8 @@ def _run_details(stats: RunStats, language: str) -> list[str]:
         lines.append(f"- {t(language, 'truncated', paths=paths)}")
     if stats.redactions:
         lines.append(f"- {t(language, 'redactions', count=stats.redactions)}")
+    if stats.cached:
+        lines.append(f"- {t(language, 'cached')}")
     provider, model = sanitize_path(stats.provider), sanitize_path(stats.model)
     lines += [
         f"- {t(language, 'chunks', chunks=stats.chunks)}",

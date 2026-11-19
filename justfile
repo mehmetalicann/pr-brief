@@ -37,5 +37,10 @@ sec:
 # Definition of done for every phase.
 check: lint type cov sec
 
+# Regenerate the hash-locked runtime requirements that action.yml installs (use Python 3.12,
+# the version the action runs on).
+lock:
+    {{py}} -m piptools compile --generate-hashes --strip-extras --no-header --no-annotate --quiet -o requirements.lock pyproject.toml
+
 run-local:
     {{py}} scripts/run_local.py --diff tests/fixtures/diffs/medium.patch --provider mock

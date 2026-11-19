@@ -25,3 +25,7 @@ class SchemaError(PrBriefError):
 
 class ProviderError(PrBriefError):
     """An LLM provider call failed."""
+
+
+class GitHubError(PrBriefError):
+    """A GitHub API call failed."""

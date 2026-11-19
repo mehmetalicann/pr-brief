@@ -12,11 +12,13 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
+from pr_brief.cache import BriefCache, cache_key
 from pr_brief.config import Settings, load_settings
-from pr_brief.core.chunker import plan_chunks
+from pr_brief.core.chunker import ChunkPlan, plan_chunks
 from pr_brief.core.diff import FileDiff, parse_diff
 from pr_brief.core.filters import filter_files
 from pr_brief.core.prompts import (
+    PROMPT_VERSION,
     RESERVED_TOKENS,
     PRMeta,
     Prompt,
@@ -38,6 +40,12 @@ MAX_DIFF_CHARS = 5_000_000
 M = TypeVar("M", bound=BaseModel)
 
 
+@dataclass(frozen=True)
+class RunResult:
+    markdown: str
+    stats: RunStats | None  # None when nothing reviewable remained
+
+
 @dataclass
 class _Usage:
     input_tokens: int = 0
@@ -53,7 +61,20 @@ def run(
     *,
     repo: str | None = None,
 ) -> str:
-    """Turn a unified diff into the comment Markdown. Raises `PrBriefError` on failure.
+    """Turn a unified diff into the comment Markdown. Raises `PrBriefError` on failure."""
+    return run_detailed(diff_text, settings, provider, meta, repo=repo).markdown
+
+
+def run_detailed(
+    diff_text: str,
+    settings: Settings,
+    provider: Provider,
+    meta: PRMeta,
+    *,
+    repo: str | None = None,
+    cache: BriefCache | None = None,
+) -> RunResult:
+    """Like `run`, but also returns the run statistics and can serve/store cached briefs.
 
     Order is a security property: redact (diff and PR text) -> parse -> filter -> chunk ->
     provider -> sanitise the model output -> render. Nothing reaches the chunker or a provider
@@ -71,11 +92,49 @@ def run(
     filtered = filter_files(parse_diff(redacted.text), ignore=settings.ignore)
     if not filtered.kept:
         reasons = ", ".join(f"`{sanitize_path(s.path)}` ({s.reason})" for s in filtered.skipped)
-        return render_failure(reasons, language=lang, headline="no_reviewable")
+        return RunResult(render_failure(reasons, language=lang, headline="no_reviewable"), None)
 
     budget = max(settings.max_input_tokens - RESERVED_TOKENS, 500)
     plan = plan_chunks(filtered.kept, budget_tokens=budget)
     usage = _Usage()
+    key = _cache_key(redacted.text, meta, settings, provider, repo) if cache else ""
+    brief = cache.get(key) if cache else None
+    cached = brief is not None
+    if brief is not None:
+        brief = sanitize_brief(brief, repo=repo)  # never trust stored files blindly
+        usage.model = settings.model or provider.name
+    else:
+        brief = sanitize_brief(
+            _generate(provider, settings, meta, plan, filtered.kept, usage), repo=repo
+        )
+        if cache:
+            cache.put(key, brief)
+    stats = RunStats(
+        analyzed=len(filtered.kept) - len(plan.omitted),
+        skipped=filtered.skipped,
+        chunks=len(plan.chunks),
+        provider=provider.name,
+        model=usage.model,
+        input_tokens=usage.input_tokens,
+        output_tokens=usage.output_tokens,
+        omitted=plan.omitted,
+        truncated=plan.truncated,
+        redactions=redactions,
+        cached=cached,
+    )
+    # Last line of defence: nothing registered as a secret can ever be posted.
+    return RunResult(mask(render_comment(brief, stats, language=lang)), stats)
+
+
+def _generate(
+    provider: Provider,
+    settings: Settings,
+    meta: PRMeta,
+    plan: ChunkPlan,
+    kept: Sequence[FileDiff],
+    usage: _Usage,
+) -> BriefOutput:
+    lang = settings.language
     if len(plan.chunks) == 1:
         prompt = build_brief_prompt(meta, plan.chunks[0].text, language=lang)
     else:
@@ -92,27 +151,30 @@ def run(
         prompt = build_reduce_prompt(
             meta,
             summaries,
-            file_list=[_describe(f) for f in filtered.kept if f.path not in omitted],
+            file_list=[_describe(f) for f in kept if f.path not in omitted],
             language=lang,
             skipped_note=note,
         )
-    brief = sanitize_brief(
-        _complete(provider, prompt, BriefOutput, settings, usage, "brief"), repo=repo
-    )
-    stats = RunStats(
-        analyzed=len(filtered.kept) - len(plan.omitted),
-        skipped=filtered.skipped,
-        chunks=len(plan.chunks),
+    return _complete(provider, prompt, BriefOutput, settings, usage, "brief")
+
+
+def _cache_key(
+    redacted_diff: str, meta: PRMeta, settings: Settings, provider: Provider, repo: str | None
+) -> str:
+    return cache_key(
+        diff=redacted_diff,
+        prompt_version=PROMPT_VERSION,
         provider=provider.name,
-        model=usage.model,
-        input_tokens=usage.input_tokens,
-        output_tokens=usage.output_tokens,
-        omitted=plan.omitted,
-        truncated=plan.truncated,
-        redactions=redactions,
+        model=settings.model or "",
+        language=settings.language,
+        title=meta.title,
+        body=meta.body,
+        labels=meta.labels,
+        repo=repo,
+        max_input_tokens=settings.max_input_tokens,
+        max_output_tokens=settings.max_output_tokens,
+        ignore=settings.ignore,
     )
-    # Last line of defence: nothing registered as a secret can ever be posted.
-    return mask(render_comment(brief, stats, language=lang))
 
 
 def _redact_meta(meta: PRMeta) -> tuple[PRMeta, int]:
@@ -175,6 +237,10 @@ def main(argv: Sequence[str] | None = None, env: Mapping[str, str] | None = None
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8")
     args = _parser().parse_args(argv)
+    if args.github:
+        from pr_brief.action import run_github  # imported late: action imports this module
+
+        return run_github(env)
     register_secrets([env.get("PR_BRIEF_API_KEY", "").strip()])
     fail_hard = env.get("PR_BRIEF_FAIL_ON_ERROR", "").strip().lower() == "true"
     language = "en"
@@ -213,7 +279,13 @@ def _parser() -> argparse.ArgumentParser:
         prog="pr-brief",
         description="Write a PR brief for a local diff file (offline; always a dry run).",
     )
-    p.add_argument("--diff", required=True, help="path to a unified diff (.patch)")
+    mode = p.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--diff", help="path to a unified diff (.patch); local dry run")
+    mode.add_argument(
+        "--github",
+        action="store_true",
+        help="run for the pull request in the GitHub Actions event (settings come from PR_BRIEF_*)",
+    )
     p.add_argument("--provider", help="mock | ollama | openai-compatible | anthropic | gemini")
     p.add_argument("--model")
     p.add_argument("--base-url", help="ollama / openai-compatible endpoint (https, or localhost)")

@@ -1,1 +1,1 @@
-"""github package (populated in a later phase)."""
+"""github package (REST client, comment upsert, event parsing)."""

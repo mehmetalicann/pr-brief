@@ -24,6 +24,7 @@ Issues = "https://github.com/mehmetalicann/pr-brief/issues"
 dev = [
     "bandit>=1.7",
     "mypy>=1.11",
+    "pip-tools>=7.4",
     "pip-audit>=2.7",
     "pre-commit>=3.8",
     "pytest>=8.0",
@@ -58,6 +59,7 @@ plugins = ["pydantic.mypy"]
 minversion = "8.0"
 testpaths = ["tests"]
 addopts = "--import-mode=importlib"
+pythonpath = ["tests"]
 markers = ["live: calls a real LLM; skipped unless RUN_LIVE=1"]
 
 [tool.coverage.run]

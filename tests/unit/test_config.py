@@ -135,3 +135,46 @@ def test_settings_is_immutable(tmp_path: Path) -> None:
     s: Settings = load_settings({"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path)
     with pytest.raises(ValueError, match="frozen"):
         s.language = "tr"  # type: ignore[misc]
+
+
+def test_config_loader_replaces_the_working_directory_file(tmp_path: Path) -> None:
+    write(tmp_path, "language: tr\n")  # must be ignored when a loader is given
+    seen: list[str] = []
+
+    def loader(path: str) -> str | None:
+        seen.append(path)
+        return "model: from-base\n"
+
+    s = load_settings({"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path, config_loader=loader)
+    assert (s.model, s.language, seen) == ("from-base", "en", [".pr-brief.yml"])
+
+
+def test_config_loader_missing_default_file_is_fine(tmp_path: Path) -> None:
+    s = load_settings(
+        {"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path, config_loader=lambda _p: None
+    )
+    assert s.model is None
+
+
+def test_config_loader_missing_explicit_file_is_an_error(tmp_path: Path) -> None:
+    env = {"PR_BRIEF_PROVIDER": "mock", "PR_BRIEF_CONFIG_PATH": "x.yml"}
+    with pytest.raises(ConfigError, match="not found"):
+        load_settings(env, base_dir=tmp_path, config_loader=lambda _p: None)
+
+
+def test_config_loader_is_never_asked_for_unsafe_paths(tmp_path: Path) -> None:
+    def boom(_p: str) -> str:
+        raise AssertionError("loader must not be called")
+
+    for bad in ("/etc/passwd", "../secret.yml"):
+        env = {"PR_BRIEF_PROVIDER": "mock", "PR_BRIEF_CONFIG_PATH": bad}
+        with pytest.raises(ConfigError):
+            load_settings(env, base_dir=tmp_path, config_loader=boom)
+
+
+def test_config_loader_text_is_size_limited_and_rejects_api_key(tmp_path: Path) -> None:
+    env = {"PR_BRIEF_PROVIDER": "mock"}
+    with pytest.raises(ConfigError, match="too large"):
+        load_settings(env, base_dir=tmp_path, config_loader=lambda _p: "a: " + "x" * 70_000)
+    with pytest.raises(ConfigError, match="api-key"):
+        load_settings(env, base_dir=tmp_path, config_loader=lambda _p: "api-key: abc\n")

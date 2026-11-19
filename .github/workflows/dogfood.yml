@@ -1,0 +1,31 @@
+name: Dogfood
+
+# pr-brief writes a brief on this repository's own pull requests.
+# Off by default. To enable: add the repository secret LLM_API_KEY and the repository variables
+# PR_BRIEF_DOGFOOD=true, PR_BRIEF_PROVIDER (e.g. gemini) and PR_BRIEF_MODEL.
+# Pull requests from forks never receive secrets; the action skips them with a neutral notice.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  brief:
+    if: vars.PR_BRIEF_DOGFOOD == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # This job holds a secret, so it runs the action as it exists on the base branch, not the
+      # code of the pull request. The PR's own changes are exercised by `action-smoke` in ci.yml.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          persist-credentials: false
+      - uses: ./
+        with:
+          provider: ${{ vars.PR_BRIEF_PROVIDER }}
+          model: ${{ vars.PR_BRIEF_MODEL }}
+          api-key: ${{ secrets.LLM_API_KEY }}

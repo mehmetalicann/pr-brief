@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from _support.github_fake import FakeGitHub
+
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
@@ -21,3 +23,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     for item in items:
         if "live" in item.keywords:
             item.add_marker(skip_live)
+
+
+@pytest.fixture
+def github(load_diff: Callable[[str], str]) -> FakeGitHub:
+    return FakeGitHub(diff=load_diff("small.patch"))

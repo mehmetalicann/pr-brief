@@ -1,0 +1,128 @@
+name: PR Brief
+description: One concise, safe, always-up-to-date summary comment on every pull request.
+author: mehmetalicann
+branding:
+  icon: file-text
+  color: blue
+
+# Every optional input defaults to "" on purpose: only inputs you set explicitly override
+# `.pr-brief.yml`, and the real defaults live in the code (see docs/action.md).
+inputs:
+  provider:
+    description: "mock | ollama | openai-compatible | anthropic | gemini"
+    required: false
+    default: ""
+  model:
+    description: Model name for the provider.
+    required: false
+    default: ""
+  api-key:
+    description: Provider API key. Pass a repository secret; never put it in a file.
+    required: false
+    default: ""
+  base-url:
+    description: Endpoint for ollama / openai-compatible (https, or localhost).
+    required: false
+    default: ""
+  language:
+    description: "Output language: en | tr (default: en)."
+    required: false
+    default: ""
+  max-input-tokens:
+    description: "Input token budget (default: 6000)."
+    required: false
+    default: ""
+  max-output-tokens:
+    description: "Output token budget (default: 900)."
+    required: false
+    default: ""
+  ignore:
+    description: Extra glob patterns to ignore, one per line.
+    required: false
+    default: ""
+  include-drafts:
+    description: "Also process draft pull requests (default: false)."
+    required: false
+    default: ""
+  dry-run:
+    description: "Write the comment to the job log and summary instead of posting (default: false)."
+    required: false
+    default: ""
+  fail-on-error:
+    description: "Fail the job on errors instead of failing soft (default: false)."
+    required: false
+    default: ""
+  config-path:
+    description: "Config file in the base branch (default: .pr-brief.yml)."
+    required: false
+    default: ""
+  github-token:
+    description: Token used to read the pull request and write the comment.
+    required: false
+    default: ${{ github.token }}
+  cache:
+    description: "Reuse results for identical input (default: true)."
+    required: false
+    default: ""
+  timeout-seconds:
+    description: "Per-request timeout in seconds (default: 60)."
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      id: python
+      uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+      with:
+        python-version: "3.12"
+        update-environment: false
+
+    - name: Restore result cache
+      if: inputs.cache != 'false'
+      uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/pr-brief-cache
+        key: pr-brief-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: pr-brief-
+
+    - name: Install pinned dependencies
+      shell: bash
+      env:
+        PYTHON: ${{ steps.python.outputs.python-path }}
+        ACTION_PATH: ${{ github.action_path }}
+      run: |
+        set -euo pipefail
+        "$PYTHON" -m venv "$RUNNER_TEMP/pr-brief-venv"
+        "$RUNNER_TEMP/pr-brief-venv/bin/python" -m pip install --quiet --disable-pip-version-check \
+          --require-hashes --no-deps -r "$ACTION_PATH/requirements.lock"
+
+    - name: Write the PR brief
+      shell: bash
+      env:
+        PYTHONPATH: ${{ github.action_path }}/src
+        PYTHONSAFEPATH: "1"
+        PYTHONDONTWRITEBYTECODE: "1"
+        PR_BRIEF_CACHE_DIR: ${{ runner.temp }}/pr-brief-cache
+        PR_BRIEF_PROVIDER: ${{ inputs.provider }}
+        PR_BRIEF_MODEL: ${{ inputs.model }}
+        PR_BRIEF_API_KEY: ${{ inputs.api-key }}
+        PR_BRIEF_BASE_URL: ${{ inputs.base-url }}
+        PR_BRIEF_LANGUAGE: ${{ inputs.language }}
+        PR_BRIEF_MAX_INPUT_TOKENS: ${{ inputs.max-input-tokens }}
+        PR_BRIEF_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
+        PR_BRIEF_IGNORE: ${{ inputs.ignore }}
+        PR_BRIEF_INCLUDE_DRAFTS: ${{ inputs.include-drafts }}
+        PR_BRIEF_DRY_RUN: ${{ inputs.dry-run }}
+        PR_BRIEF_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
+        PR_BRIEF_CONFIG_PATH: ${{ inputs.config-path }}
+        PR_BRIEF_CACHE: ${{ inputs.cache }}
+        PR_BRIEF_TIMEOUT_SECONDS: ${{ inputs.timeout-seconds }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set -euo pipefail
+        # Run from a neutral directory: the workspace may hold the PR's files, and nothing in it
+        # may ever be imported or executed.
+        cd "$RUNNER_TEMP"
+        exec "$RUNNER_TEMP/pr-brief-venv/bin/python" -P -m pr_brief --github
