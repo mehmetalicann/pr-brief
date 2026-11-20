@@ -53,6 +53,7 @@ def make_project(tmp_path: Path, **over: str) -> Path:
         "src/pr_brief/__init__.py": '"""doc"""\n\n__version__ = "1.2.3"\n',
         "CHANGELOG.md": CHANGELOG,
         "README.md": README,
+        "SECURITY.md": "# Security\n\nSupported: the latest 1.x release.\n",
     }
     files.update(over)
     for name, text in files.items():
@@ -123,11 +124,15 @@ def test_readme_must_not_still_claim_to_be_pre_release(tmp_path: Path) -> None:
     assert any("pre-release" in p for p in release.verify("v1.2.3", root))
 
 
-def test_the_real_repository_is_not_releasable_yet_for_the_right_reasons() -> None:
-    """Today the version is 0.0.0 and the README says pre-release: the gate must say so."""
-    problems = release.verify("v1.0.0", ROOT)
-    assert any("pyproject.toml" in p for p in problems)
-    assert any("pre-release" in p for p in problems)
+def test_security_policy_must_not_still_say_pre_release(tmp_path: Path) -> None:
+    root = make_project(tmp_path, **{"SECURITY.md": "pr-brief is pre-release (0.x).\n"})
+    assert any("SECURITY.md" in p for p in release.verify("v1.2.3", root))
+
+
+def test_the_repository_is_always_consistent_with_its_own_version() -> None:
+    """main must stay releasable: version, changelog, README and SECURITY.md agree at all times."""
+    version = release.project_version(ROOT)
+    assert release.verify(f"v{version}", ROOT) == []
 
 
 def test_cli_prints_problems_and_fails(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

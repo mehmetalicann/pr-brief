@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-pr-brief is pre-release (0.x). Until `v1.0.0`, only the latest commit on `main` is supported.
-After that, the latest `v1` release is supported.
+Only the latest `v1` release (the `v1` tag) is supported. Fixes are published as a new patch
+version; please update before reporting.
 
 ## Reporting a vulnerability
 

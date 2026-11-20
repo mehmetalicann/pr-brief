@@ -5,8 +5,13 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-20
+
+First release.
+
 ### Added
-- Project bootstrap: package skeleton, tooling, CI.
+- Project bootstrap: package skeleton, tooling, CI (a separate `security` job runs `pip-audit` and
+  gitleaks), architecture decision records in `docs/adr/`.
 - Offline core: unified-diff parser, file filters, token-budget chunker with map-reduce planning,
   output schema with JSON extraction and one repair attempt, versioned prompts, Markdown renderer,
   settings loader (`.pr-brief.yml` + `PR_BRIEF_*` environment), mock provider and a local

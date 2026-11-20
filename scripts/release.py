@@ -44,6 +44,11 @@ def changelog_notes(text: str, version: str) -> str:
     raise ReleaseError(f"CHANGELOG.md has no dated section '## [{version}] - YYYY-MM-DD'")
 
 
+def project_version(root: Path) -> str:
+    data = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
+    return str(data["project"]["version"])
+
+
 def verify(tag: str, root: Path) -> list[str]:
     """Every reason why `tag` must not be released from the tree at `root` (empty: all good)."""
     try:
@@ -53,10 +58,9 @@ def verify(tag: str, root: Path) -> list[str]:
     version = f"{major}.{minor}.{patch}"
     problems: list[str] = []
 
-    pyproject = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))
-    if pyproject["project"]["version"] != version:
+    if project_version(root) != version:
         problems.append(
-            f"pyproject.toml has version {pyproject['project']['version']}, the tag says {version}"
+            f"pyproject.toml has version {project_version(root)}, the tag says {version}"
         )
     init = (root / "src" / "pr_brief" / "__init__.py").read_text(encoding="utf-8")
     found = re.search(r'^__version__ = "([^"]+)"', init, re.M)
@@ -83,6 +87,9 @@ def verify(tag: str, root: Path) -> list[str]:
             problems.append(f"README.md uses 'pr-brief@{ref}', a release needs '@{expected}'")
     if PRE_RELEASE_MARKER in readme:
         problems.append("README.md still says 'Status: pre-release'; remove that notice first")
+    security = (root / "SECURITY.md").read_text(encoding="utf-8")
+    if "pre-release" in security.lower():
+        problems.append("SECURITY.md still says the project is pre-release; update the policy")
     return problems
 
 

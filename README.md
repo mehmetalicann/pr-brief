@@ -3,9 +3,6 @@
 A GitHub Action that writes (and keeps up to date) **one** comment on each pull request:
 a short summary, a suggested Conventional Commits message, and a risk/review checklist.
 
-> **Status: pre-release.** The first release, `v1.0.0`, is not published yet, so the `@v1`
-> reference below only resolves after it is. Progress: [`docs/PROGRESS.md`](docs/PROGRESS.md).
-
 ## Why
 
 Reviewers open a pull request and have to rebuild the picture from the diff. pr-brief gives them

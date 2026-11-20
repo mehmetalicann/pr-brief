@@ -13,13 +13,20 @@ move it to the log below with the date.
    Ollama were checked live. The README and `docs/providers.md` now say so under "Verification
    status" (a test keeps both honest). Closing it needs a paid key and one `tests/providers/`
    live test per vendor. Optional, does not block the release.
-2. **Phase 6 is started, not finished** (see the entry below): the release workflow, its gate and
-   the docs exist, but no tag has been cut. Still to do: bump the version to 1.0.0 in
-   `pyproject.toml` and `src/pr_brief/__init__.py`, date the CHANGELOG section, delete the README's
-   "Status: pre-release" notice, set up a signing key for `git tag -s`, then tag. Also open: issue
-   labels, `codeql.yml` (needs a public repository), the manual Marketplace publication.
+2. **Phase 6: the `v1.0.0` tag is not cut yet.** The tree is prepared (see the entry below) and the
+   release dry run is expected to be green. Waiting for the maintainer: the go-ahead to tag, and
+   whether to sign the tag (needs a signing key on the GitHub account; `docs/releasing.md`). After
+   the tag: the manual Marketplace publication, `codeql.yml` (needs a public repository).
 
-## 2026-11-20 - Maintainer decisions on the open items, release structure (Phase 6 started, not committed yet)
+## 2026-11-20 - Phase 6 prepared: gaps closed, tree ready for v1.0.0 (tag not cut)
+- Real runner dry run of `release.yml` (manual, tag `v1.0.0`): found a bug on the way, `git fetch` without credentials failed on the private repository (checkout runs with `persist-credentials: false`); removed (checkout with `fetch-depth: 0` already has `origin/main`) and guarded by a test. Before the version bump the dry run was rejected by the gate for the right reasons (versions, CHANGELOG, README notice) and `publish` was skipped.
+- Gaps against the spec closed: `docs/adr/` (6 records: just, plain HTTP, trigger and fork policy, composite action with locked dependencies, one comment by marker and author, gated releases) with a format test; `CONTRIBUTING.md` points to the provider guide and the ADRs; separate `security` CI job (`just sec`: pip-audit and gitleaks), as in spec 7.4; labels `provider` and `security` created on the repository (`good first issue` already existed).
+- The release gate also rejects a `SECURITY.md` that still says pre-release; a test keeps `main` consistent with its own version at all times.
+- Release prep: version 1.0.0 in `pyproject.toml` and `__init__.py`, CHANGELOG `[1.0.0] - 2026-11-20` plus an empty `[Unreleased]`, README pre-release notice removed, `SECURITY.md` supports the latest `v1`. `scripts/release.py verify --tag v1.0.0` exits 0, `scripts/sbom.py` writes a valid file.
+- Still not done (not blocking): the spec's "coverage upload" in CI (needs an external service), bot-PR skipping (optional L7), real OpenAI/Anthropic calls.
+- `just check` passes: 734 tests (+4 skipped, 2 deselected), coverage ~98%, bandit, pip-audit, gitleaks clean.
+
+## 2026-11-20 - Maintainer decisions on the open items, release structure (Phase 6 started)
 - Item "demo GIF": generated instead of recorded. `scripts/make_demo_gif.py` runs the real pipeline (mock provider, canned model text) on a tiny demo diff, draws a PR page around the real comment, screenshots it with headless Edge and joins 6 frames with ffmpeg: `docs/assets/demo.gif` (83 KB, 800x900, ~20 s, loops). Every frame says "Illustration, not a screen recording"; the README says the same. No Python dependency added. I looked at the frames: no personal data or secrets.
 - Item "real vendor endpoints": README and `docs/providers.md` got a "Verification status" table (Ollama and Gemini live, OpenAI-compatible and Anthropic mock-only, with a request to open an issue).
 - Item "`@<full-commit-sha>` placeholder": the README now says `@v1`, explains pinning to a full commit SHA and how to find it, and carries a pre-release notice instead of a placeholder. To make sure the repository cannot go public or release with a broken snippet: `scripts/release.py verify --tag vX.Y.Z` (stdlib only) fails unless `pyproject.toml`, `__init__.py`, a dated CHANGELOG section and the README's `@vMAJOR` agree and the pre-release notice is gone; a test proves it rejects the repository as it is today. `.github/workflows/release.yml`: tag `vX.Y.Z` (or a manual dry run with a tag name) -> commit must be on `main` -> gate -> `just check` -> only for a tag push: GitHub release from the CHANGELOG section and the major tag moved through the API (only for the newest release of its line). Read-only token except in the publish job, no `${{ }}` inside scripts, actions pinned to SHAs, `zizmor` clean. `docs/releasing.md` (steps, signing, dry run), `docs/going-public.md` (do not publish before the tag exists; tag ruleset that protects `vX.Y.Z` but not `v1`).
