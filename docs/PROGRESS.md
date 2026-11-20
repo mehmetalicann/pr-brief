@@ -10,7 +10,9 @@ move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
 2. **Manual steps that only the maintainer can do:** tag signing key (optional, recommended before going public; `docs/releasing.md`) and the Marketplace publication (name uniqueness can only be checked in the listing form).
-3. **Unreleased changes** (`skip-bots`, `codeql.yml`, CI coverage artifact) need a `v1.1.0` release to reach `@v1` users.
+3. **`v1.1.0` is prepared, tag not cut:** version, CHANGELOG and gate are ready (`skip-bots`, `codeql.yml`, CI coverage artifact, dogfood concurrency fix, vendor live tests). Waiting for the maintainer's go-ahead to tag.
+
+**Status of the open items (maintainer decision 2026-11-20):** item 1 is knowingly left open (no paid key for now). **Item 2, Marketplace: not urgent, the assistant must remind the maintainer** when `v1.1.0` is out or the repository is about to go public, and walk through `docs/marketplace.md` step by step (the maintainer did not know what to do). The signing key part of item 2 was not discussed yet.
 
 ## 2026-11-20 - Open items worked off before Phase 7 (maintainer: "do these first")
 - New `skip-bots` setting/input (default `true`, schema change approved): PRs whose author is a GitHub App (`type == Bot` or login `[bot]`) end with a neutral skip; tests first (config, client, integration incl. base-config override), docs in README, `docs/action.md`, `configuration.md`, `troubleshooting.md`, `.pr-brief.example.yml`; L7 row in the security model updated.

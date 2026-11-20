@@ -5,6 +5,8 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-11-20
+
 ### Added
 - Opt-in live tests for the OpenAI-compatible and Anthropic adapters (`just live`, separate keys).
 - A `codeql.yml` workflow that runs only on public repositories; CI keeps the coverage report as a job-summary table and an artifact.
