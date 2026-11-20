@@ -9,8 +9,23 @@ assistant must list these to the maintainer and ask whether to do them first. Wh
 move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). Request and
-   response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini was
-   checked live on 2026-11-20 (see the log below); the other two have no key yet. Optional.
+   response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini and
+   Ollama were checked live. The README and `docs/providers.md` now say so under "Verification
+   status" (a test keeps both honest). Closing it needs a paid key and one `tests/providers/`
+   live test per vendor. Optional, does not block the release.
+2. **Phase 6 is started, not finished** (see the entry below): the release workflow, its gate and
+   the docs exist, but no tag has been cut. Still to do: bump the version to 1.0.0 in
+   `pyproject.toml` and `src/pr_brief/__init__.py`, date the CHANGELOG section, delete the README's
+   "Status: pre-release" notice, set up a signing key for `git tag -s`, then tag. Also open: issue
+   labels, `codeql.yml` (needs a public repository), the manual Marketplace publication.
+
+## 2026-11-20 - Maintainer decisions on the open items, release structure (Phase 6 started, not committed yet)
+- Item "demo GIF": generated instead of recorded. `scripts/make_demo_gif.py` runs the real pipeline (mock provider, canned model text) on a tiny demo diff, draws a PR page around the real comment, screenshots it with headless Edge and joins 6 frames with ffmpeg: `docs/assets/demo.gif` (83 KB, 800x900, ~20 s, loops). Every frame says "Illustration, not a screen recording"; the README says the same. No Python dependency added. I looked at the frames: no personal data or secrets.
+- Item "real vendor endpoints": README and `docs/providers.md` got a "Verification status" table (Ollama and Gemini live, OpenAI-compatible and Anthropic mock-only, with a request to open an issue).
+- Item "`@<full-commit-sha>` placeholder": the README now says `@v1`, explains pinning to a full commit SHA and how to find it, and carries a pre-release notice instead of a placeholder. To make sure the repository cannot go public or release with a broken snippet: `scripts/release.py verify --tag vX.Y.Z` (stdlib only) fails unless `pyproject.toml`, `__init__.py`, a dated CHANGELOG section and the README's `@vMAJOR` agree and the pre-release notice is gone; a test proves it rejects the repository as it is today. `.github/workflows/release.yml`: tag `vX.Y.Z` (or a manual dry run with a tag name) -> commit must be on `main` -> gate -> `just check` -> only for a tag push: GitHub release from the CHANGELOG section and the major tag moved through the API (only for the newest release of its line). Read-only token except in the publish job, no `${{ }}` inside scripts, actions pinned to SHAs, `zizmor` clean. `docs/releasing.md` (steps, signing, dry run), `docs/going-public.md` (do not publish before the tag exists; tag ruleset that protects `vX.Y.Z` but not `v1`).
+- SBOM: `scripts/sbom.py` writes a CycloneDX 1.5 file from the hash-locked `requirements.lock` (names, versions, purls, SHA-256 hashes); `release.yml` attaches it to the release as `sbom.cdx.json`. Marketplace: a test checks `action.yml` against the Marketplace limits (description at most 125 characters, valid colour and icon, file at the root); the listing text is in `docs/marketplace.md`; the name's uniqueness can only be checked in the listing form.
+- Not verified on a real runner yet: `release.yml` (it needs to be on `main` for the dry run; planned after the push). Not done: tag signing key (needs the maintainer).
+- `just check` passes: 720 tests (+4 skipped, 2 deselected), coverage ~98%, bandit, pip-audit, gitleaks clean.
 
 ## 2026-11-20 - Open item closed: three security hardening decisions (maintainer said "do all three")
 - Tests first (red, then green), then code. (a) Fork PRs under `pull_request_target` are now skipped unless the new action input `allow-fork-target: true` is set (`github/context.skip_reason`, `action.yml`, docs; same-repo PRs under that event are unaffected). (b) The output sanitiser wraps cross-repository references (`owner/repo#12`, `owner/repo@sha`) in backticks so GitHub creates no backlink; same-repo `#12` is left alone. (c) The README workflow and `dogfood.yml` have a per-PR `concurrency` group with `cancel-in-progress`; a test guards both.

@@ -32,6 +32,10 @@ versioning: [SemVer](https://semver.org/).
   docs in sync with `action.yml` and the settings model.
 - An opt-in live Gemini test (`just live`) that reads the key from a git-ignored `.env`.
 - `allow-fork-target` input: fork PRs are now also skipped under `pull_request_target` unless it is set.
+- A guarded release workflow (`release.yml`) and release gate (`scripts/release.py`), plus
+  `docs/releasing.md`; the release carries a CycloneDX SBOM (`scripts/sbom.py`) and the Marketplace
+  listing text is in `docs/marketplace.md`.
+- A generated demo GIF (`scripts/make_demo_gif.py`) and a provider "Verification status" table.
 - An offline replay of the README quick start (`tests/integration/test_readme_quick_start.py`).
 
 ### Fixed
