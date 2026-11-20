@@ -98,3 +98,19 @@ def test_security_policy_has_a_private_reporting_channel() -> None:
     text = (ROOT / "SECURITY.md").read_text(encoding="utf-8").lower()
     assert "private" in text
     assert "security/advisories" in text or "advisories/new" in text
+
+
+def _slug(heading: str) -> str:
+    return re.sub(r"[^\w\- ]", "", heading.strip().lower()).replace(" ", "-")
+
+
+def test_comment_footer_links_point_to_real_readme_sections() -> None:
+    """The footer of every posted comment links to README#anchor; the anchor must exist."""
+    from pr_brief.core import i18n
+
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    slugs = {_slug(m.group(1)) for m in re.finditer(r"^#{1,6} (.+)$", readme, re.MULTILINE)}
+    strings = [v for table in i18n.STRINGS.values() for v in table.values()]
+    anchors = {a for s in strings for a in re.findall(r"\{url\}#([\w-]+)", s)}
+    assert anchors, "expected at least one footer anchor"
+    assert anchors <= slugs, f"README has no section for: {sorted(anchors - slugs)}"

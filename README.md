@@ -77,7 +77,7 @@ fix(greet): reject empty names
 An illustration, not real output. The real comment also has collapsible sections for missing tests
 and run details (files analysed or skipped, tokens, model, cache).
 
-## Settings
+## Configuration
 
 Set them as action inputs (`with:`) or in a `.pr-brief.yml` in your repository, which is read from
 the base branch so a pull request cannot change its own settings. A fully commented example is in
