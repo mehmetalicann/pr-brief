@@ -1,0 +1,101 @@
+name: Release
+
+# Pushing a tag like v1.2.3 publishes a GitHub release and moves the major tag (v1) to it.
+# A manual run (Actions, Run workflow, enter a tag) is a dry run: it runs every check and publishes
+# nothing. How to cut a release: docs/releasing.md.
+
+on:
+  push:
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to check, for example v1.0.0 (dry run: nothing is published)"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      TAG: ${{ inputs.tag || github.ref_name }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # gitleaks scans history; the ancestry check needs main
+          persist-credentials: false
+      - name: The tagged commit must be on main
+        run: |
+          set -euo pipefail
+          git fetch --quiet origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || {
+            echo "::error::$GITHUB_SHA is not on main; only reviewed commits may be released."
+            exit 1
+          }
+      - name: Version, changelog and README must agree with the tag
+        run: python3 scripts/release.py verify --tag "$TAG"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+      - name: Install gitleaks (pinned, checksum-verified)
+        run: |
+          curl -sSfL -o gitleaks.tgz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  gitleaks.tgz" | sha256sum -c -
+          sudo tar -xzf gitleaks.tgz -C /usr/local/bin gitleaks
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install --upgrade pip setuptools
+          .venv/bin/python -m pip install -e ".[dev]"
+      - name: just check
+        run: .venv/bin/just check
+
+  publish:
+    needs: verify
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release and move the major tag; nothing else
+    env:
+      TAG: ${{ github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Create the GitHub release
+        run: |
+          set -euo pipefail
+          python3 scripts/release.py notes --tag "$TAG" > "$RUNNER_TEMP/notes.md"
+          # SBOM of the locked runtime dependencies (what the action really installs).
+          python3 scripts/sbom.py --version "${TAG#v}" --out "$RUNNER_TEMP/sbom.cdx.json"
+          gh release create "$TAG" --repo "$REPO" --verify-tag --title "$TAG" \
+            --notes-file "$RUNNER_TEMP/notes.md" "$RUNNER_TEMP/sbom.cdx.json"
+      - name: Move the major tag to this release
+        run: |
+          set -euo pipefail
+          MAJOR="$(python3 scripts/release.py major --tag "$TAG")"
+          SHA="$(git rev-parse "$TAG^{commit}")"
+          # Only the newest release of a major line may move its tag (a late 1.0.5 must not
+          # pull v1 back from 1.1.0).
+          LATEST="$(gh api "repos/$REPO/git/matching-refs/tags/$MAJOR." --jq '.[].ref' \
+            | sed 's#^refs/tags/##' | sort -V | tail -1)"
+          if [ "$LATEST" != "$TAG" ]; then
+            echo "$TAG is not the newest $MAJOR release ($LATEST is); $MAJOR stays where it is."
+            exit 0
+          fi
+          if gh api "repos/$REPO/git/ref/tags/$MAJOR" > /dev/null 2>&1; then
+            gh api -X PATCH "repos/$REPO/git/refs/tags/$MAJOR" -f sha="$SHA" -F force=true
+          else
+            gh api -X POST "repos/$REPO/git/refs" -f ref="refs/tags/$MAJOR" -f sha="$SHA"
+          fi

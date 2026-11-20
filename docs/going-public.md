@@ -23,6 +23,16 @@ just check
 
 Also confirm the latest `CI` run on `main` is green (`gh run list --limit 3`).
 
+**Do not publish before the first release exists.** The README tells users to write
+`pr-brief@v1`; until that tag exists the install snippet fails for everyone who copies it.
+
+```bash
+git ls-remote --tags origin v1 v1.0.0     # both lines must appear, same commit
+python scripts/release.py verify --tag v1.0.0   # must print nothing and exit 0
+```
+
+The second command also fails while the README still carries the "Status: pre-release" notice.
+
 ## 2. Account settings (once)
 
 GitHub → *Settings → Emails*: enable **Keep my email addresses private** and **Block command line
@@ -53,6 +63,22 @@ gh api -X PUT repos/OWNER/REPO/actions/permissions/workflow \
 
 # Unused features off
 gh repo edit OWNER/REPO --enable-wiki=false --enable-projects=false
+```
+
+Tag protection (published `vX.Y.Z` tags must never be moved or deleted; the moving `v1` tag is
+left out on purpose, the release workflow updates it):
+
+```bash
+cat > tag-ruleset.json <<'JSON'
+{
+  "name": "release tags",
+  "target": "tag",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["refs/tags/v*.*.*"], "exclude": [] } },
+  "rules": [ { "type": "deletion" }, { "type": "update" }, { "type": "non_fast_forward" } ]
+}
+JSON
+gh api -X POST repos/OWNER/REPO/rulesets --input tag-ruleset.json && rm tag-ruleset.json
 ```
 
 Branch protection (a ruleset: no deletion, no force-push, CI must pass):

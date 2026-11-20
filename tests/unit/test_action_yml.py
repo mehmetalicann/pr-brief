@@ -172,3 +172,91 @@ def test_brief_workflows_cancel_superseded_runs_per_pull_request(path: str) -> N
     group = wf["concurrency"]
     assert "github.event.pull_request.number" in group["group"]
     assert group["cancel-in-progress"] is True
+
+
+# --- release workflow ---------------------------------------------------------------------------
+
+
+def release_workflow() -> dict[str, Any]:
+    return load(".github/workflows/release.yml")
+
+
+def test_release_runs_only_for_semver_tags_or_a_manual_dry_run() -> None:
+    triggers = release_workflow()[True]  # YAML reads `on:` as the boolean True
+    assert set(triggers) == {"push", "workflow_dispatch"}
+    assert "branches" not in triggers["push"]
+    (pattern,) = triggers["push"]["tags"]
+    assert pattern == "v[0-9]+.[0-9]+.[0-9]+"  # no pre-release suffixes, no branches
+
+
+def test_release_is_read_only_except_in_the_publish_job() -> None:
+    wf = release_workflow()
+    assert wf["permissions"] == {"contents": "read"}
+    assert "permissions" not in wf["jobs"]["verify"] or wf["jobs"]["verify"]["permissions"] == {
+        "contents": "read"
+    }
+    assert wf["jobs"]["publish"]["permissions"] == {"contents": "write"}
+
+
+def test_publishing_needs_a_green_verification_and_never_happens_on_a_dry_run() -> None:
+    publish = release_workflow()["jobs"]["publish"]
+    assert publish["needs"] == "verify"
+    assert "github.event_name == 'push'" in publish["if"]
+
+
+def test_verification_runs_the_gate_and_requires_the_tag_to_be_on_main() -> None:
+    text = "\n".join(s.get("run", "") for s in workflow_steps(".github/workflows/release.yml"))
+    assert "scripts/release.py verify" in text
+    assert "merge-base --is-ancestor" in text and "origin/main" in text
+    assert "just check" in text
+
+
+def test_every_workflow_script_takes_untrusted_values_from_env_only() -> None:
+    for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for step in workflow_steps(f".github/workflows/{wf.name}"):
+            assert "${{" not in step.get("run", ""), (wf.name, step.get("name"))
+
+
+def test_no_workflow_keeps_the_token_in_the_git_config() -> None:
+    for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        for step in workflow_steps(f".github/workflows/{wf.name}"):
+            if step.get("uses", "").startswith("actions/checkout"):
+                assert step["with"]["persist-credentials"] is False, wf.name
+
+
+def test_the_major_tag_is_moved_through_the_api_only_after_the_release_exists() -> None:
+    steps = release_workflow()["jobs"]["publish"]["steps"]
+    names = [s.get("name", "") for s in steps]
+    create = next(
+        i for i, n in enumerate(names) if "release" in n.lower() and "move" not in n.lower()
+    )
+    move = next(i for i, n in enumerate(names) if "major" in n.lower())
+    assert create < move
+
+
+# --- Marketplace metadata -------------------------------------------------------------------------
+
+MARKETPLACE_COLORS = {"white", "yellow", "blue", "green", "orange", "red", "purple", "gray-dark"}
+
+
+def test_marketplace_metadata_is_complete_and_within_the_limits() -> None:
+    action = load("action.yml")
+    assert 3 <= len(action["name"]) <= 50
+    assert 20 <= len(action["description"]) <= 125  # the Marketplace cuts longer descriptions
+    assert action["author"]
+    assert action["branding"]["color"] in MARKETPLACE_COLORS
+    assert re.fullmatch(r"[a-z]+(-[a-z]+)*", action["branding"]["icon"])  # a Feather icon name
+    assert (ROOT / "LICENSE").exists() and (ROOT / "README.md").exists()
+    assert (ROOT / "action.yml").exists(), "the action file must sit at the repository root"
+
+
+def test_the_listing_text_exists_and_is_honest_about_data_and_providers() -> None:
+    text = (ROOT / "docs" / "marketplace.md").read_text(encoding="utf-8").lower()
+    for topic in ("diff", "provider", "free tier", "fork"):
+        assert topic in text, topic
+
+
+def test_the_release_ships_an_sbom_built_from_the_locked_dependencies() -> None:
+    steps = release_workflow()["jobs"]["publish"]["steps"]
+    text = "\n".join(s.get("run", "") for s in steps)
+    assert "scripts/sbom.py" in text and "sbom.cdx.json" in text
