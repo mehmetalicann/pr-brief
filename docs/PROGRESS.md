@@ -9,10 +9,13 @@ assistant must list these to the maintainer and ask whether to do them first. Wh
 move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
-2. **Manual steps that only the maintainer can do:** tag signing key (optional, recommended before going public; `docs/releasing.md`) and the Marketplace publication (name uniqueness can only be checked in the listing form).
-3. **`v1.1.0` is prepared, tag not cut:** version, CHANGELOG and gate are ready (`skip-bots`, `codeql.yml`, CI coverage artifact, dogfood concurrency fix, vendor live tests). Waiting for the maintainer's go-ahead to tag.
+2. **Marketplace publication** (manual, not urgent; the maintainer asked to be reminded and to be walked through `docs/marketplace.md`). Name uniqueness can only be checked in the listing form. Remind before going public.
+3. **Item 1 knowingly left open** (no paid key for now), see above.
 
-**Status of the open items (maintainer decision 2026-11-20):** item 1 is knowingly left open (no paid key for now). **Item 2, Marketplace: not urgent, the assistant must remind the maintainer** when `v1.1.0` is out or the repository is about to go public, and walk through `docs/marketplace.md` step by step (the maintainer did not know what to do). The signing key part of item 2 was not discussed yet.
+## 2026-11-20 - v1.1.0 released with a signed tag
+- Dedicated SSH signing key (passphrase protected, private key never read by the assistant), registered on GitHub as a *signing key*; repo-local git config (`gpg.format ssh`, `user.signingkey`, `.git/allowed_signers`, not committed).
+- Signed annotated tag `v1.1.0` on `d028be1`; `release.yml` passed (`verify`, `publish`), release has `sbom.cdx.json`, `v1` moved to the same commit. GitHub reports the tag as verified (`reason: valid`). `v1.0.0` stays unsigned and must not be re-pointed.
+- Signing now needs the maintainer to type the passphrase: the assistant cannot create signed tags without it (no ssh-agent); the maintainer runs `git tag -s` with `!`.
 
 ## 2026-11-20 - Open items worked off before Phase 7 (maintainer: "do these first")
 - New `skip-bots` setting/input (default `true`, schema change approved): PRs whose author is a GitHub App (`type == Bot` or login `[bot]`) end with a neutral skip; tests first (config, client, integration incl. base-config override), docs in README, `docs/action.md`, `configuration.md`, `troubleshooting.md`, `.pr-brief.example.yml`; L7 row in the security model updated.
