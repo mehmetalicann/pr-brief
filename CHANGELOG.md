@@ -31,6 +31,9 @@ versioning: [SemVer](https://semver.org/).
   `docs/troubleshooting.md`, `docs/architecture.md`, a demo-GIF guide, and tests that keep the
   docs in sync with `action.yml` and the settings model.
 - An opt-in live Gemini test (`just live`) that reads the key from a git-ignored `.env`.
+- An offline replay of the README quick start (`tests/integration/test_readme_quick_start.py`).
 
 ### Fixed
 - CI: upgrade the venv's bundled pip/setuptools before `pip-audit`.
+- The footer link of every comment now points to an existing README section (`#configuration`).
+- Dependabot waits 7 days before proposing a new release (supply-chain cooldown).
