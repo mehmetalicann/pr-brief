@@ -15,7 +15,10 @@ move it to the log below with the date.
 ## 2026-11-20 - Phase 7 started: usage report and presets (maintainer picked usage report, presets, `/pr-brief refresh`)
 - Usage report: the job summary now lists the number of provider requests (chunks, reduce step, repairs) and, only when the maintainer sets `price-input-per-million` and `price-output-per-million` (both or neither, 0 to 1,000,000), an estimated cost from those prices; a cache hit shows `$0.0000`. Decision: no built-in price list (prices change and differ per model). Two new optional settings/inputs, tests first.
 - Presets: `preset: balanced | cheap | strict` sets only the token budgets (cheap 3000/500, balanced 6000/900, strict 12000/1500); single settings from file, environment or inputs still win; a test proves presets cannot touch anything but the two budgets. One new setting/input.
-- Not committed yet. `/pr-brief refresh` needs a design talk first (`issue_comment` trigger, who may run it, fork PRs, secrets); nothing built.
+- Committed as `ebbb947` (usage report, presets).
+- `/pr-brief refresh` (design approved by the maintainer, ADR 7, `docs/refresh.md`): opt-in `issue_comment` trigger; exact command, new comments only, by a person with association OWNER/MEMBER/COLLABORATOR, on a PR; forks skipped unless `allow-fork-target`; cache bypassed; same comment edited. Tests first; mutation-checked (adding `NONE` to the allowed list, dropping the bot check, prefix matching and dropping the fork check each fail tests). The workflow filter and the action check the same rules, and a test compares the two. No new input or setting.
+- **Not verified on a real runner yet:** comment-triggered workflows only run from the default branch, so a trial needs the workflow on `main` (a temporary trial workflow) and the maintainer's key as a secret. Open until done.
+- `just check` passes: 820 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean. Not committed yet.
 - `just check` passes: 767 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean.
 
 ## 2026-11-20 - v1.1.0 released with a signed tag

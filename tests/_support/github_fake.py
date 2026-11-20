@@ -85,6 +85,34 @@ class FakeGitHub:
         return httpx.Response(404, json={"message": "Not Found"})
 
 
+def comment_env(
+    tmp_path: Path,
+    *,
+    body: str = "/pr-brief refresh",
+    association: str = "OWNER",
+    user_type: str = "User",
+    on_pull_request: bool = True,
+    action: str = "created",
+    **extra: str,
+) -> dict[str, str]:
+    """Environment of an `issue_comment` run: a comment on issue/PR number 7."""
+    issue: dict[str, object] = {"number": 7}
+    if on_pull_request:
+        issue["pull_request"] = {"url": "https://api.github.com/repos/octo/demo/pulls/7"}
+    payload = {
+        "action": action,
+        "issue": issue,
+        "comment": {
+            "body": body,
+            "author_association": association,
+            "user": {"login": "someone", "type": user_type},
+        },
+    }
+    env = action_env(tmp_path, event_name="issue_comment", **extra)
+    Path(env["GITHUB_EVENT_PATH"]).write_text(json.dumps(payload), encoding="utf-8")
+    return env
+
+
 def action_env(
     tmp_path: Path,
     *,

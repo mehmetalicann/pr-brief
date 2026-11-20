@@ -7,6 +7,7 @@ server it controls). Every failure is soft (exit 0) unless `fail-on-error` is se
 
 from __future__ import annotations
 
+import dataclasses
 import time
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -52,12 +53,19 @@ def run_github(
             transport=transport,
         )
         pull = client.get_pull(ctx.repo, ctx.number)
+        if ctx.refresh:  # a comment event does not say where the PR comes from: ask the API
+            forked = dataclasses.replace(ctx, is_fork=pull.is_fork)
+            reason = skip_reason(forked, allow_fork_target=allow_fork_target)
+            if reason:
+                return _skipped(env, reason)
         settings = load_settings(
             env,
             base_dir=Path.cwd(),  # unused: the loader below reads from the base commit
             config_loader=lambda path: client.get_file(ctx.repo, path, pull.base_sha),
         )
         fail_hard = settings.fail_on_error
+        if ctx.refresh:
+            settings = settings.model_copy(update={"cache": False})  # a refresh means a new call
         if pull.draft and not settings.include_drafts:
             return _skipped(env, "this pull request is a draft (set include-drafts to process it)")
         if pull.author_is_bot and settings.skip_bots:
@@ -87,7 +95,8 @@ def run_github(
             outcome = "dry run (nothing was posted)"
         else:
             outcome = upsert_comment(client, ctx.repo, ctx.number, result.markdown).action
-        _write_summary(env, _success_summary(result, outcome, settings, clock() - started))
+        summary = _success_summary(result, outcome, settings, clock() - started, ctx.refresh)
+        _write_summary(env, summary)
         return 0
     except PrBriefError as exc:
         message = exc.user_message()
@@ -105,8 +114,12 @@ def _skipped(env: Mapping[str, str], reason: str) -> int:
     return 0
 
 
-def _success_summary(result: RunResult, outcome: str, settings: Settings, seconds: float) -> str:
+def _success_summary(
+    result: RunResult, outcome: str, settings: Settings, seconds: float, refresh: bool = False
+) -> str:
     lines = ["### PR Brief", "", f"- Result: **{outcome}**"]
+    if refresh:
+        lines.append("- Trigger: `/pr-brief refresh` comment (cache skipped)")
     stats = result.stats
     if stats is not None:
         cache = "off" if not settings.cache else ("hit" if stats.cached else "miss")

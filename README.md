@@ -42,6 +42,9 @@ jobs:
 
 4. Open a pull request. When the job finishes there is one comment, edited in place on every push.
 
+Optional: maintainers can ask for a new brief with a `/pr-brief refresh` comment, see
+[`docs/refresh.md`](docs/refresh.md).
+
 No `actions/checkout` step is needed. To see the result first without posting anything, add
 `dry-run: true`: the comment then appears in the job log and the job summary. Model names change
 over time; use one that your provider currently lists.

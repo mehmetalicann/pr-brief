@@ -12,3 +12,4 @@ Consequences. Add a new file (next number) instead of editing an accepted one; m
 | [4](0004-composite-action-with-locked-dependencies.md) | Composite action with hash-locked dependencies |
 | [5](0005-one-comment-upserted-by-marker-and-author.md) | One comment, found by marker and author |
 | [6](0006-tag-driven-gated-releases.md) | Tag-driven, gated releases with a moving major tag |
+| [7](0007-refresh-command-by-comment.md) | `/pr-brief refresh` comment command, opt-in, maintainers only |

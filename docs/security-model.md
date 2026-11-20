@@ -42,6 +42,11 @@ the map-reduce paths, and not even the chunker, ever sees a masked value.
   or runs PR code, but a fork controls the diff and PR text that reach the model, so fork PRs are
   **skipped under `pull_request_target` as well** unless the maintainer sets
   `allow-fork-target: true`. The default and recommended trigger is `pull_request`.
+- **`issue_comment` (`/pr-brief refresh`)** is opt-in and has the same exposure: it runs with
+  secrets for comments on any pull request, fork ones included. The action runs only for the exact
+  command, from a person who is an owner, member or collaborator, on a new comment; fork pull
+  requests are skipped like under `pull_request_target`; the check is made in the workflow filter
+  and again in the action. See [refresh.md](refresh.md) and ADR 7.
 
 - **Redaction is best effort.** Unknown token formats, secrets split across lines, or secrets
   embedded in prose can pass. High-entropy detection trades false negatives for fewer false

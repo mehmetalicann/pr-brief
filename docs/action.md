@@ -57,6 +57,10 @@ Precedence: defaults < `.pr-brief.yml` (base branch) < action inputs.
 - **Fork PRs** under `pull_request` get no secrets and a read-only token, so the run is skipped
   with a notice in the job summary (exit 0). Under `pull_request_target` fork PRs are skipped too, unless `allow-fork-target: true`
   is set; see the [security model](security-model.md) before using it.
+- **`/pr-brief refresh` comments** (opt-in, `issue_comment` trigger) from owners, members and
+  collaborators on a pull request write a new brief without the cache; everything else about a
+  comment event is a neutral no-op. Fork pull requests are skipped as under `pull_request_target`.
+  See [refresh.md](refresh.md).
 - **Concurrency.** The README workflow uses one `concurrency` group per pull request with
   `cancel-in-progress`, so a newer push cancels the older run and two runs started seconds apart
   cannot both create a comment.

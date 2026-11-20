@@ -6,6 +6,7 @@ versioning: [SemVer](https://semver.org/).
 ## [Unreleased]
 
 ### Added
+- `/pr-brief refresh` comment command (opt-in via the `issue_comment` trigger, owners, members and collaborators only, forks skipped, cache bypassed): see `docs/refresh.md` and ADR 7.
 - `preset` setting and input (`cheap`, `balanced`, `strict`): ready-made token budgets that single settings can still override.
 - Usage report in the job summary: number of provider requests and, when `price-input-per-million` and `price-output-per-million` are set, an estimated cost from your own prices.
 
