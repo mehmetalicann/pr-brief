@@ -26,6 +26,11 @@ versioning: [SemVer](https://semver.org/).
   config read from the base commit, graceful skip for forks, drafts and other events, step
   summary, result cache for identical input, `dogfood.yml` and an `action-smoke` CI job,
   `docs/action.md`.
+- Docs and UX: Turkish output (`language: tr`), a rewritten README (quick start, settings table,
+  FAQ, Turkish section), `.pr-brief.example.yml`, `docs/configuration.md`,
+  `docs/troubleshooting.md`, `docs/architecture.md`, a demo-GIF guide, and tests that keep the
+  docs in sync with `action.yml` and the settings model.
+- An opt-in live Gemini test (`just live`) that reads the key from a git-ignored `.env`.
 
 ### Fixed
 - CI: upgrade the venv's bundled pip/setuptools before `pip-audit`.

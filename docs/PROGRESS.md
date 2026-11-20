@@ -12,6 +12,15 @@ move it to the log below with the date.
    response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini was
    checked live on 2026-11-20 (see the log below); the other two have no key yet. Optional.
 
+## 2026-11-20 - Phase 5: UX, docs, i18n (done, not committed yet)
+- Decision at the start: continued with the OpenAI-compatible/Anthropic live check still open (item 1); remind again now.
+- Tests first (red, then green): `tests/unit/test_i18n.py` (same keys and placeholders in `en` and `tr`, fallback to English) and `tests/unit/test_docs.py` (YAML examples parse, README quick start uses real `action.yml` inputs and the required permissions, every input documented in README and `docs/configuration.md`, relative links resolve, example config loads and shows every setting). An old render test used `tr` as its "unknown language" example; it now uses `xx`, plus a new Turkish-comment test.
+- `core/i18n.py` now has the Turkish table. New: `.pr-brief.example.yml`, `docs/configuration.md` (the file the error hints already pointed to), `docs/troubleshooting.md` (forks, secrets, quota/429, 403, Ollama on self-hosted runners, large PRs), `docs/architecture.md`, `scripts/make_demo_gif.md`. README rewritten: why, 5-step quick start, example comment, settings table, FAQ, free-tier data note, short Turkish section.
+- Lint: ruff `RUF001` (ambiguous dotless i) is ignored for `core/i18n.py` and `tests/**` in `pyproject.toml`.
+- Not done: `docs/assets/demo.gif` (needs a screen recording by the maintainer; see `scripts/make_demo_gif.md`), `docs/adr/` (not a Phase 5 output). The README quick start still says `@<full-commit-sha>` until the `v1` tag exists (Phase 6).
+- Acceptance "a new user can follow the README in under 5 minutes" is **not yet verified end to end**: it needs a real run of the README workflow on a sandbox repository. Offline parts were checked (`just run-local`, Turkish output with the mock provider).
+- `just check` passes: 653 tests (+4 skipped, 2 deselected), coverage ~98%, bandit, pip-audit, gitleaks clean.
+
 ## 2026-11-20 - Open item partly closed: live Gemini test
 - `just live` with a Google AI Studio key (kept in the git-ignored `.env`, never shown to the assistant): `gemini-3.5-flash-lite` returned a schema-valid brief (2 passed, ~11 s). The request path (`/v1beta/models/{model}:generateContent`, `x-goog-api-key`) works against the real API.
 - Other models on the same key: `gemini-2.5-flash` and `gemini-2.5-flash-lite` answered 404 although they are listed by `models.list`; `gemini-flash-latest` and `gemini-3.5-flash` answered 503 (capacity) after the 2 retries. So the test default `gemini-2.5-flash` is outdated; set `PR_BRIEF_LIVE_GEMINI_MODEL` in `.env`.

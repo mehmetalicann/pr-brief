@@ -1,0 +1,48 @@
+# Example pr-brief configuration. Copy it to `.pr-brief.yml` in the repository root.
+#
+# - The file is read from the BASE branch (for example `main`), never from the pull request,
+#   so a PR cannot change its own settings. Merge changes to this file first.
+# - Every key is optional except `provider` (which may also come from the action input).
+# - Precedence: built-in defaults < this file < action inputs / PR_BRIEF_* variables.
+# - The API key is NOT allowed here. Pass it with the action's `api-key` input from a secret.
+
+# mock | ollama | openai-compatible | anthropic | gemini   (docs/providers.md)
+provider: gemini
+
+# Model name, as the provider spells it. Names change over time: check the provider's model list.
+model: gemini-3.5-flash-lite
+
+# Endpoint for `ollama` and `openai-compatible` only (https, or localhost). Leave unset for the
+# vendor endpoints of `gemini` and `anthropic`.
+# base-url: https://api.groq.com/openai/v1
+
+# Language of the generated comment: en | tr
+language: en
+
+# Token budgets. Larger diffs are split into chunks and summarised in two steps.
+max-input-tokens: 6000   # 500 .. 200000
+max-output-tokens: 900   # 100 .. 16000
+
+# Extra globs to skip, on top of the built-in list (lockfiles, dist/, node_modules/, minified and
+# generated files, images, archives, ...). Patterns are matched against the file path.
+ignore:
+  - "docs/generated/**"
+  - "*.snap"
+
+# Also write a brief for draft pull requests.
+include-drafts: false
+
+# Print the comment to the job log and summary instead of posting it. Good for a first trial.
+dry-run: false
+
+# Fail the job when something goes wrong. By default errors are reported but the job stays green.
+fail-on-error: false
+
+# Reuse the stored result when the diff, prompt, model and settings are identical.
+cache: true
+
+# Per-request timeout in seconds (retries are separate: at most two, with short backoff).
+timeout-seconds: 60
+
+# Path of this file in the repository. Only needed when it lives somewhere else:
+# config-path: .github/pr-brief.yml
