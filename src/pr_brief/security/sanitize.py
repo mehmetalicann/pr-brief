@@ -25,6 +25,12 @@ _LINK_RE = re.compile(r"\[([^\]]*)\]\(\s*<?([^)\s>]*)>?(?:\s+[^)]*)?\)")
 _URL_RE = re.compile(r"(?i)(?:https?://|ftp://|www\.)[^\s<>()\[\]`\"']+")
 _SCHEME_RE = re.compile(r"(?i)\b(?:javascript|vbscript|data|file|mailto):\S+")
 _MENTION_RE = re.compile(r"(?<![\w`@/\\.])@([A-Za-z0-9][A-Za-z0-9-]{0,38}(?:/[A-Za-z0-9_.-]+)?)")
+# `owner/repo#12` and `owner/repo@<sha>` become cross-reference links (a backlink on the other
+# repository's issue or commit), so the model must not be able to produce them.
+_XREF_RE = re.compile(
+    r"(?<![\w`/.@-])([A-Za-z0-9][A-Za-z0-9_.-]{0,99}/[A-Za-z0-9_.-]{1,100})"
+    r"(#\d+|@[0-9a-fA-F]{7,40})(?!\w)"
+)
 _LEADING_BLOCK_RE = re.compile(r"^(?:[#>]+\s*|[-*+]\s+|\d+[.)]\s+)+")
 _TRAILING_PUNCT = ".,;:!?"
 _REMOVED = "[link removed]"
@@ -187,7 +193,8 @@ def _defuse(seg: str, repo: str | None) -> str:
     seg = _URL_RE.sub(lambda m: _bare_url(m.group(0), repo), seg)
     seg = _SCHEME_RE.sub(_REMOVED, seg)
     seg = seg.replace("<", _LAQUO).replace(">", _RAQUO)
-    return _MENTION_RE.sub(lambda m: f"`@{m.group(1)}`", seg)
+    seg = _MENTION_RE.sub(lambda m: f"`@{m.group(1)}`", seg)
+    return _XREF_RE.sub(lambda m: f"`{m.group(0)}`", seg)
 
 
 def _bare_url(url: str, repo: str | None) -> str:

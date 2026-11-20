@@ -254,3 +254,24 @@ def test_anchor_links_are_kept_and_malformed_urls_are_removed() -> None:
 def test_empty_subject_falls_back_to_a_default() -> None:
     brief = make_brief(commit_message=CommitMessage(type="fix", subject="​​"))
     assert sanitize_brief(brief, repo=REPO).commit_message.subject == "update"
+
+
+@pytest.mark.parametrize(
+    "ref",
+    ["evil-org/secret-repo#1", "evil-org/secret-repo@abcdef1234567", "octo/other#42"],
+)
+def test_cross_repository_references_are_defused(ref: str) -> None:
+    out = inline(f"See {ref} for details")
+    assert f"`{ref}`" in out  # kept as text, but GitHub will not link or back-reference it
+
+
+def test_same_repository_issue_numbers_are_left_alone() -> None:
+    assert inline("Fixes #12 and follows up on #7") == "Fixes #12 and follows up on #7"
+
+
+def test_references_inside_code_spans_are_not_double_wrapped() -> None:
+    assert inline("see `evil-org/secret-repo#1` now") == "see `evil-org/secret-repo#1` now"
+
+
+def test_a_path_that_looks_like_a_reference_is_not_touched() -> None:
+    assert inline("edit src/app#section in docs/a/b") == "edit src/app#section in docs/a/b"
