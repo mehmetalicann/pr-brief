@@ -46,8 +46,12 @@ def load_event(env: Mapping[str, str]) -> PullRequestContext:
     )
 
 
-def skip_reason(ctx: PullRequestContext) -> str | None:
-    """Why this run should be a neutral no-op (exit 0), or None to go on."""
+def skip_reason(ctx: PullRequestContext, *, allow_fork_target: bool = False) -> str | None:
+    """Why this run should be a neutral no-op (exit 0), or None to go on.
+
+    `pull_request_target` hands secrets and a write token to fork PRs, so forks are skipped there
+    too unless the maintainer opted in with `allow-fork-target`.
+    """
     if ctx.event_name not in PULL_REQUEST_EVENTS:
         return f"the event `{ctx.event_name}` is not a pull request event"
     if ctx.action not in RUN_ACTIONS:
@@ -56,6 +60,12 @@ def skip_reason(ctx: PullRequestContext) -> str | None:
         return (
             "this pull request comes from a fork: secrets and a write token are not available "
             "to it, so the brief is skipped (see docs/action.md)"
+        )
+    if ctx.is_fork and ctx.event_name == "pull_request_target" and not allow_fork_target:
+        return (
+            "this pull request comes from a fork and the workflow uses `pull_request_target`, "
+            "which exposes secrets to content the fork controls: set `allow-fork-target: true` "
+            "only if you understand the risk (see docs/security-model.md)"
         )
     return None
 

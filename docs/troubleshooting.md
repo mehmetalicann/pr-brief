@@ -11,7 +11,7 @@ Messages below are quoted as the action prints them (the provider name varies).
 
 | What you see | Cause and fix |
 |--------------|---------------|
-| Job summary says the run was skipped for a **fork** pull request | Under `pull_request`, GitHub gives fork PRs no secrets and a read-only token, so the action cannot call the model or post. This is intended. Maintainers can re-run the PR from a branch in the main repository. Using `pull_request_target` for forks is possible but dangerous; read the [security model](security-model.md) first. |
+| Job summary says the run was skipped for a **fork** pull request | Under `pull_request`, GitHub gives fork PRs no secrets and a read-only token, so the action cannot call the model or post. This is intended. Maintainers can re-run the PR from a branch in the main repository. Using `pull_request_target` for forks is possible only with the explicit `allow-fork-target: true` input and is dangerous; read the [security model](security-model.md) first. |
 | Skipped, draft PR | Drafts are ignored. Set `include-drafts: true`, or mark the PR ready for review (the `ready_for_review` event triggers a run). |
 | The workflow does not run at all | Check the `on:` block: it needs `pull_request` with the types `opened`, `synchronize`, `reopened`, `ready_for_review`. Check the Actions tab: a run that never started points to the `on:` block or to Actions being disabled for the repository. |
 | "GitHub refused the request: the token lacks permission (HTTP 403)" | Add `permissions: { contents: read, pull-requests: write }` to the workflow or job. Check that the repository setting "Workflow permissions" does not block it. Fork PRs always get a read-only token. |

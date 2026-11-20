@@ -21,6 +21,7 @@ SPEC_INPUTS = {
     "max-output-tokens",
     "ignore",
     "include-drafts",
+    "allow-fork-target",
     "dry-run",
     "fail-on-error",
     "config-path",
@@ -147,3 +148,27 @@ def test_dependabot_waits_before_adopting_fresh_releases() -> None:
     assert updates
     for update in updates:
         assert update["cooldown"]["default-days"] >= 7, update["package-ecosystem"]
+
+
+def test_fork_target_opt_in_is_off_by_default_and_reaches_the_code() -> None:
+    action = load("action.yml")
+    assert action["inputs"]["allow-fork-target"]["default"] == ""
+    (step,) = [s for s in action["runs"]["steps"] if s.get("name") == "Write the PR brief"]
+    assert step["env"]["PR_BRIEF_ALLOW_FORK_TARGET"] == "${{ inputs.allow-fork-target }}"
+
+
+@pytest.mark.parametrize("path", [".github/workflows/dogfood.yml", "README.md"])
+def test_brief_workflows_cancel_superseded_runs_per_pull_request(path: str) -> None:
+    """Two runs started seconds apart could both create a comment; one group per PR prevents it."""
+    if path == "README.md":
+        text = (ROOT / path).read_text(encoding="utf-8")
+        wf = next(
+            yaml.safe_load(m)
+            for m in re.findall(r"```yaml\n(.*?)```", text, re.DOTALL)
+            if m.startswith("name: PR Brief")
+        )
+    else:
+        wf = load(path)
+    group = wf["concurrency"]
+    assert "github.event.pull_request.number" in group["group"]
+    assert group["cancel-in-progress"] is True

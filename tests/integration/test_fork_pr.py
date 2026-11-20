@@ -35,11 +35,31 @@ def test_fork_pr_is_skipped_even_when_fail_on_error_is_set(
     assert run_github(env, transport=github.transport()) == 0
 
 
-def test_pull_request_target_runs_for_forks_because_it_has_secrets(
+def test_fork_prs_under_pull_request_target_are_skipped_by_default(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    env = action_env(tmp_path, fork=True, event_name="pull_request_target")
+    assert run_github(env, transport=github.transport()) == 0
+    assert github.requests == [] and github.comments == []
+    summary = Path(env["GITHUB_STEP_SUMMARY"]).read_text(encoding="utf-8")
+    assert "allow-fork-target" in summary
+
+
+def test_fork_prs_under_pull_request_target_run_only_with_the_explicit_opt_in(
     github: FakeGitHub, tmp_path: Path
 ) -> None:
     github.pull["head"]["repo"] = {"full_name": "someone/demo"}
-    env = action_env(tmp_path, fork=True, event_name="pull_request_target")
+    env = action_env(
+        tmp_path, fork=True, event_name="pull_request_target", PR_BRIEF_ALLOW_FORK_TARGET="true"
+    )
+    assert run_github(env, transport=github.transport()) == 0
+    assert len(github.comments) == 1
+
+
+def test_same_repo_prs_under_pull_request_target_run_without_the_opt_in(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    env = action_env(tmp_path, event_name="pull_request_target")
     assert run_github(env, transport=github.transport()) == 0
     assert len(github.comments) == 1
 

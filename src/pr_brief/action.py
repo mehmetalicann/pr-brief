@@ -42,7 +42,8 @@ def run_github(
     started = clock()
     try:
         ctx = load_event(env)
-        reason = skip_reason(ctx)
+        allow_fork_target = env.get("PR_BRIEF_ALLOW_FORK_TARGET", "").strip().lower() == "true"
+        reason = skip_reason(ctx, allow_fork_target=allow_fork_target)
         if reason:
             return _skipped(env, reason)
         client = GitHubClient(

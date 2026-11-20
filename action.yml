@@ -44,6 +44,10 @@ inputs:
     description: "Also process draft pull requests (default: false)."
     required: false
     default: ""
+  allow-fork-target:
+    description: "Process fork PRs under pull_request_target, which exposes secrets to them (default: false)."
+    required: false
+    default: ""
   dry-run:
     description: "Write the comment to the job log and summary instead of posting (default: false)."
     required: false
@@ -114,6 +118,7 @@ runs:
         PR_BRIEF_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
         PR_BRIEF_IGNORE: ${{ inputs.ignore }}
         PR_BRIEF_INCLUDE_DRAFTS: ${{ inputs.include-drafts }}
+        PR_BRIEF_ALLOW_FORK_TARGET: ${{ inputs.allow-fork-target }}
         PR_BRIEF_DRY_RUN: ${{ inputs.dry-run }}
         PR_BRIEF_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
         PR_BRIEF_CONFIG_PATH: ${{ inputs.config-path }}

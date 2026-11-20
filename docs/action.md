@@ -35,6 +35,7 @@ in the last column is what applies when neither sets it.
 | `max-input-tokens`, `max-output-tokens` | Token budgets | 6000 / 900 |
 | `ignore` | Extra globs to skip, one per line | none |
 | `include-drafts` | Also process draft PRs | `false` |
+| `allow-fork-target` | Also process fork PRs under `pull_request_target`. Unsafe: that event gives fork PRs secrets and a write token. Read the [security model](security-model.md) first. | `false` |
 | `dry-run` | Print the comment to the log and the job summary, post nothing | `false` |
 | `fail-on-error` | Fail the job on errors (default: fail soft, exit 0) | `false` |
 | `config-path` | Config file, read from the **base branch** | `.pr-brief.yml` |
@@ -50,8 +51,11 @@ Precedence: defaults < `.pr-brief.yml` (base branch) < action inputs.
   a neutral no-op.
 - **Draft PRs** are skipped unless `include-drafts: true`.
 - **Fork PRs** under `pull_request` get no secrets and a read-only token, so the run is skipped
-  with a notice in the job summary (exit 0). `pull_request_target` runs for forks too; see the
-  [security model](security-model.md) before using it.
+  with a notice in the job summary (exit 0). Under `pull_request_target` fork PRs are skipped too, unless `allow-fork-target: true`
+  is set; see the [security model](security-model.md) before using it.
+- **Concurrency.** The README workflow uses one `concurrency` group per pull request with
+  `cancel-in-progress`, so a newer push cancels the older run and two runs started seconds apart
+  cannot both create a comment.
 - **One comment per PR.** It starts with a hidden marker and is edited in place on every push.
   Only comments by `github-actions[bot]` are recognised.
 - **Failures never break your CI** unless `fail-on-error` is set: the reason (with a "How to fix"

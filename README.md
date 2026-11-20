@@ -30,6 +30,9 @@ on:
 permissions:
   contents: read
   pull-requests: write
+concurrency:
+  group: pr-brief-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 jobs:
   brief:
     runs-on: ubuntu-latest
@@ -95,6 +98,7 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `max-output-tokens` | `900` | Token budget for the answer |
 | `ignore` | none | Extra globs to skip, one per line |
 | `include-drafts` | `false` | Also process draft PRs |
+| `allow-fork-target` | `false` | Also process fork PRs under `pull_request_target` (unsafe, read the [security model](docs/security-model.md)) |
 | `dry-run` | `false` | Print instead of posting |
 | `fail-on-error` | `false` | Fail the job on errors (default: stay green) |
 | `config-path` | `.pr-brief.yml` | Location of the config file |

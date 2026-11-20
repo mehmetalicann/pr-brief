@@ -110,3 +110,31 @@ def test_rejects_events_without_a_valid_number(tmp_path: Path) -> None:
     env = write_event(tmp_path, number="seven")
     with pytest.raises(ConfigError):
         load_event(env)
+
+
+def _as_target(tmp_path: Path, *, fork: bool) -> dict[str, str]:
+    env = write_event(tmp_path)
+    payload = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+    if fork:
+        payload["pull_request"]["head"]["repo"] = {"full_name": "someone/demo"}
+    Path(env["GITHUB_EVENT_PATH"]).write_text(json.dumps(payload), encoding="utf-8")
+    return {**env, "GITHUB_EVENT_NAME": "pull_request_target"}
+
+
+def test_fork_prs_under_pull_request_target_are_skipped_unless_opted_in(tmp_path: Path) -> None:
+    ctx = load_event(_as_target(tmp_path, fork=True))
+    reason = skip_reason(ctx) or ""
+    assert "pull_request_target" in reason and "allow-fork-target" in reason
+    assert skip_reason(ctx, allow_fork_target=True) is None
+
+
+def test_same_repository_prs_under_pull_request_target_need_no_opt_in(tmp_path: Path) -> None:
+    assert skip_reason(load_event(_as_target(tmp_path, fork=False))) is None
+
+
+def test_the_opt_in_does_not_unlock_forks_under_plain_pull_request(tmp_path: Path) -> None:
+    env = write_event(tmp_path)
+    payload = json.loads(Path(env["GITHUB_EVENT_PATH"]).read_text(encoding="utf-8"))
+    payload["pull_request"]["head"]["repo"] = {"full_name": "someone/demo"}
+    Path(env["GITHUB_EVENT_PATH"]).write_text(json.dumps(payload), encoding="utf-8")
+    assert skip_reason(load_event(env), allow_fork_target=True) is not None
