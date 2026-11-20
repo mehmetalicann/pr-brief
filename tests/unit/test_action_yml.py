@@ -139,3 +139,11 @@ def test_ci_runs_the_action_in_a_mock_dry_run_smoke_job() -> None:
     step = next(s for s in job["steps"] if s.get("uses") == "./")
     assert step["with"]["provider"] == "mock"
     assert str(step["with"]["dry-run"]).lower() == "true"
+
+
+def test_dependabot_waits_before_adopting_fresh_releases() -> None:
+    """A cooldown gives the community time to catch a hijacked release before we adopt it."""
+    updates = load(".github/dependabot.yml")["updates"]
+    assert updates
+    for update in updates:
+        assert update["cooldown"]["default-days"] >= 7, update["package-ecosystem"]
