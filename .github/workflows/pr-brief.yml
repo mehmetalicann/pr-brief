@@ -1,0 +1,16 @@
+name: PR Brief
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: mehmetalicann/pr-brief@1ec59f1c2f8e51063ba3aa4693c958c1718eeb49   # use @v1 once it is published
+        with:
+          provider: gemini
+          model: gemini-3.5-flash-lite
+          api-key: ${{ secrets.LLM_API_KEY }}
