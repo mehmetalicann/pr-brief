@@ -280,3 +280,22 @@ def test_ci_runs_pip_audit_and_gitleaks_in_a_separate_job() -> None:
     assert "just sec" in text and "gitleaks" in text
     checkout = next(s for s in jobs["security"]["steps"] if "checkout" in s.get("uses", ""))
     assert checkout["with"]["fetch-depth"] == 0  # gitleaks scans the history
+
+
+def test_concurrency_groups_never_collide_across_workflows() -> None:
+    """A skipped workflow still takes its group and would cancel the README workflow's run.
+
+    (Found on a real runner: dogfood.yml and the README workflow shared `pr-brief-<number>`.)
+    """
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    readme_wf = next(
+        yaml.safe_load(m)
+        for m in re.findall(r"```yaml\n(.*?)```", text, re.DOTALL)
+        if m.startswith("name: PR Brief")
+    )
+    groups = {"README.md": readme_wf["concurrency"]["group"]}
+    for wf in sorted((ROOT / ".github" / "workflows").glob("*.yml")):
+        group = load(f".github/workflows/{wf.name}").get("concurrency")
+        if group:
+            groups[wf.name] = group["group"] if isinstance(group, dict) else group
+    assert len(set(groups.values())) == len(groups), groups

@@ -16,7 +16,7 @@ permissions:
 # One brief at a time per pull request: a newer push cancels the older run, so two runs started
 # seconds apart cannot both create a comment.
 concurrency:
-  group: pr-brief-${{ github.event.pull_request.number }}
+  group: pr-brief-dogfood-${{ github.event.pull_request.number }}
   cancel-in-progress: true
 
 jobs:

@@ -5,6 +5,11 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- `dogfood.yml` no longer shares its `concurrency` group with the README workflow: a skipped
+  workflow still takes the group and cancelled the real run (found on a real runner). Documented
+  in `docs/troubleshooting.md`.
+
 ## [1.0.0] - 2026-11-20
 
 First release.
