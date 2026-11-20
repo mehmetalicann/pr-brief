@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from pr_brief.config import Settings, load_settings
+from pr_brief.config import PRESETS, Settings, load_settings
 from pr_brief.errors import ConfigError
 
 
@@ -21,6 +21,7 @@ def test_defaults_match_the_spec(tmp_path: Path) -> None:
     assert s.config_path == ".pr-brief.yml"
     assert s.timeout_seconds == 60
     assert s.api_key is None
+    assert (s.price_input_per_million, s.price_output_per_million) == (None, None)
 
 
 def test_provider_is_required(tmp_path: Path) -> None:
@@ -179,3 +180,90 @@ def test_config_loader_text_is_size_limited_and_rejects_api_key(tmp_path: Path) 
         load_settings(env, base_dir=tmp_path, config_loader=lambda _p: "a: " + "x" * 70_000)
     with pytest.raises(ConfigError, match="api-key"):
         load_settings(env, base_dir=tmp_path, config_loader=lambda _p: "api-key: abc\n")
+
+
+def test_preset_defaults_to_balanced_which_is_the_plain_defaults(tmp_path: Path) -> None:
+    s = load_settings({"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path)
+    assert (s.preset, s.max_input_tokens, s.max_output_tokens) == ("balanced", 6000, 900)
+
+
+@pytest.mark.parametrize(
+    ("name", "tokens_in", "tokens_out"),
+    [("balanced", 6000, 900), ("cheap", 3000, 500), ("strict", 12000, 1500)],
+)
+def test_presets_set_the_token_budgets(
+    tmp_path: Path, name: str, tokens_in: int, tokens_out: int
+) -> None:
+    env = {"PR_BRIEF_PROVIDER": "mock", "PR_BRIEF_PRESET": name}
+    s = load_settings(env, base_dir=tmp_path)
+    assert (s.preset, s.max_input_tokens, s.max_output_tokens) == (name, tokens_in, tokens_out)
+
+
+def test_single_settings_still_beat_the_preset(tmp_path: Path) -> None:
+    write(tmp_path, "provider: mock\npreset: cheap\nmax-input-tokens: 4000\n")
+    s = load_settings({}, base_dir=tmp_path)
+    assert (s.max_input_tokens, s.max_output_tokens) == (4000, 500)
+    env = {"PR_BRIEF_MAX_OUTPUT_TOKENS": "700"}
+    s = load_settings(env, base_dir=tmp_path)
+    assert (s.max_input_tokens, s.max_output_tokens) == (4000, 700)
+
+
+def test_precedence_of_the_preset_name_follows_the_usual_order(tmp_path: Path) -> None:
+    write(tmp_path, "provider: mock\npreset: cheap\n")
+    s = load_settings({"PR_BRIEF_PRESET": "strict"}, base_dir=tmp_path)
+    assert s.preset == "strict" and s.max_input_tokens == 12000
+    s = load_settings(
+        {"PR_BRIEF_PRESET": "strict"}, base_dir=tmp_path, overrides={"preset": "cheap"}
+    )
+    assert s.preset == "cheap" and s.max_input_tokens == 3000
+
+
+@pytest.mark.parametrize("bad", ["", "turbo", "CHEAP"])
+def test_unknown_preset_is_rejected(tmp_path: Path, bad: str) -> None:
+    write(tmp_path, f"provider: mock\npreset: '{bad}'\n")
+    with pytest.raises(ConfigError, match="preset"):
+        load_settings({}, base_dir=tmp_path)
+
+
+def test_a_non_text_preset_in_the_file_is_a_config_error_not_a_crash(tmp_path: Path) -> None:
+    write(tmp_path, "provider: mock\npreset: [cheap]\n")
+    with pytest.raises(ConfigError, match="preset"):
+        load_settings({}, base_dir=tmp_path)
+
+
+def test_presets_only_touch_token_budgets_and_stay_in_range() -> None:
+    """A preset must never be able to loosen a security setting (no ignore, key, URL, forks...)."""
+    for name, values in PRESETS.items():
+        assert set(values) <= {"max_input_tokens", "max_output_tokens"}, name
+        Settings(provider="mock", **values)
+
+
+def test_prices_are_read_from_env_and_file(tmp_path: Path) -> None:
+    env = {
+        "PR_BRIEF_PROVIDER": "mock",
+        "PR_BRIEF_PRICE_INPUT_PER_MILLION": "0.15",
+        "PR_BRIEF_PRICE_OUTPUT_PER_MILLION": "0.6",
+    }
+    s = load_settings(env, base_dir=tmp_path)
+    assert (s.price_input_per_million, s.price_output_per_million) == (0.15, 0.6)
+    write(tmp_path, "provider: mock\nprice-input-per-million: 3\nprice-output-per-million: 15\n")
+    s = load_settings({}, base_dir=tmp_path)
+    assert (s.price_input_per_million, s.price_output_per_million) == (3, 15)
+
+
+@pytest.mark.parametrize("only", ["PRICE_INPUT_PER_MILLION", "PRICE_OUTPUT_PER_MILLION"])
+def test_one_price_without_the_other_is_rejected(tmp_path: Path, only: str) -> None:
+    env = {"PR_BRIEF_PROVIDER": "mock", f"PR_BRIEF_{only}": "1"}
+    with pytest.raises(ConfigError, match="price"):
+        load_settings(env, base_dir=tmp_path)
+
+
+@pytest.mark.parametrize("bad", ["-1", "abc", "nan", "inf", "2000000"])
+def test_prices_must_be_sane_numbers(tmp_path: Path, bad: str) -> None:
+    env = {
+        "PR_BRIEF_PROVIDER": "mock",
+        "PR_BRIEF_PRICE_INPUT_PER_MILLION": bad,
+        "PR_BRIEF_PRICE_OUTPUT_PER_MILLION": "1",
+    }
+    with pytest.raises(ConfigError):
+        load_settings(env, base_dir=tmp_path)

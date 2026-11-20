@@ -12,6 +12,12 @@ move it to the log below with the date.
 2. **Marketplace publication** (manual, not urgent; the maintainer asked to be reminded and to be walked through `docs/marketplace.md`). Name uniqueness can only be checked in the listing form. Remind before going public.
 3. **Item 1 knowingly left open** (no paid key for now), see above.
 
+## 2026-11-20 - Phase 7 started: usage report and presets (maintainer picked usage report, presets, `/pr-brief refresh`)
+- Usage report: the job summary now lists the number of provider requests (chunks, reduce step, repairs) and, only when the maintainer sets `price-input-per-million` and `price-output-per-million` (both or neither, 0 to 1,000,000), an estimated cost from those prices; a cache hit shows `$0.0000`. Decision: no built-in price list (prices change and differ per model). Two new optional settings/inputs, tests first.
+- Presets: `preset: balanced | cheap | strict` sets only the token budgets (cheap 3000/500, balanced 6000/900, strict 12000/1500); single settings from file, environment or inputs still win; a test proves presets cannot touch anything but the two budgets. One new setting/input.
+- Not committed yet. `/pr-brief refresh` needs a design talk first (`issue_comment` trigger, who may run it, fork PRs, secrets); nothing built.
+- `just check` passes: 767 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean.
+
 ## 2026-11-20 - v1.1.0 released with a signed tag
 - Dedicated SSH signing key (passphrase protected, private key never read by the assistant), registered on GitHub as a *signing key*; repo-local git config (`gpg.format ssh`, `user.signingkey`, `.git/allowed_signers`, not committed).
 - Signed annotated tag `v1.1.0` on `d028be1`; `release.yml` passed (`verify`, `publish`), release has `sbom.cdx.json`, `v1` moved to the same commit. GitHub reports the tag as verified (`reason: valid`). `v1.0.0` stays unsigned and must not be re-pointed.

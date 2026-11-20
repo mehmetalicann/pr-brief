@@ -24,6 +24,7 @@ input with a repository secret.
 | `api-key` | secret | none | Provider key. Action input only, from a secret. Optional for `ollama`. |
 | `base-url` | URL | provider default | Only for `ollama` and `openai-compatible`. `https`, or `localhost`. |
 | `language` | `en`, `tr` | `en` | Language of the comment (headings and model text). |
+| `preset` | `balanced`, `cheap`, `strict` | `balanced` | Ready-made token budgets: `cheap` = 3000 input / 500 output tokens (fewer tokens, shorter brief), `balanced` = 6000 / 900 (the defaults), `strict` = 12000 / 1500 (more context, a more detailed brief). It only sets `max-input-tokens` and `max-output-tokens`, never a security setting, and a value you set yourself for either one wins over the preset. |
 | `max-input-tokens` | 500 to 200000 | `6000` | Input budget for the diff. Over budget: chunking, then truncation. |
 | `max-output-tokens` | 100 to 16000 | `900` | Cap on the model's answer. |
 | `ignore` | list of globs (a file) or lines (an input) | none | Extra paths to skip. |
@@ -36,6 +37,7 @@ input with a repository secret.
 | `github-token` | token | `${{ github.token }}` | Reads the PR and writes the comment. Action input only. |
 | `cache` | `true`, `false` | `true` | Reuse results for identical input. |
 | `timeout-seconds` | above 0 up to 600 | `60` | Per-request timeout. |
+| `price-input-per-million`, `price-output-per-million` | number from 0 to 1000000 | none | Your provider's price in USD per million input and output tokens. Both or neither: with both set, the job summary shows an estimated cost (a cache hit shows `$0.0000`). pr-brief ships no price list, so the figure is only as good as the prices you enter; your provider's bill is what counts. |
 
 An invalid value is reported with a message that names the setting, and no model call is made.
 

@@ -102,6 +102,7 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `api-key` | none | Provider key, from a secret (never from a file) |
 | `base-url` | provider default | Endpoint for `ollama` and `openai-compatible` |
 | `language` | `en` | Language of the comment: `en` or `tr` |
+| `preset` | `balanced` | Ready-made token budgets: `cheap` (3000 in / 500 out), `balanced` (6000 / 900) or `strict` (12000 / 1500); single settings still win |
 | `max-input-tokens` | `6000` | Token budget for the diff |
 | `max-output-tokens` | `900` | Token budget for the answer |
 | `ignore` | none | Extra globs to skip, one per line |
@@ -114,6 +115,7 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `github-token` | `${{ github.token }}` | Token for reading the PR and writing the comment |
 | `cache` | `true` | Reuse results for identical input |
 | `timeout-seconds` | `60` | Per-request timeout |
+| `price-input-per-million`, `price-output-per-million` | none | Your provider's prices in USD per million tokens; set both to get a cost estimate in the job summary |
 
 ### Verification status
 

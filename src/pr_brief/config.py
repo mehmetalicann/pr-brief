@@ -7,7 +7,14 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationError,
+    model_validator,
+)
 
 from pr_brief.errors import ConfigError
 
@@ -16,6 +23,15 @@ DEFAULT_CONFIG_PATH = ".pr-brief.yml"
 MAX_CONFIG_BYTES = 64 * 1024
 
 ProviderName = Literal["mock", "ollama", "openai-compatible", "anthropic", "gemini"]
+PresetName = Literal["balanced", "cheap", "strict"]
+
+# Ready-made token budgets. Only budgets: a preset can never loosen a security setting. Single
+# settings (file, environment, inputs) still override whatever the preset sets.
+PRESETS: dict[str, dict[str, Any]] = {
+    "balanced": {},  # the plain defaults
+    "cheap": {"max_input_tokens": 3000, "max_output_tokens": 500},
+    "strict": {"max_input_tokens": 12000, "max_output_tokens": 1500},
+}
 
 
 class Settings(BaseModel):
@@ -25,6 +41,7 @@ class Settings(BaseModel):
     model: str | None = None
     api_key: SecretStr | None = None
     base_url: str | None = None
+    preset: PresetName = "balanced"
     language: Literal["en", "tr"] = "en"
     max_input_tokens: int = Field(6000, ge=500, le=200_000)
     max_output_tokens: int = Field(900, ge=100, le=16_000)
@@ -36,6 +53,17 @@ class Settings(BaseModel):
     config_path: str = DEFAULT_CONFIG_PATH
     cache: bool = True
     timeout_seconds: float = Field(60, gt=0, le=600)
+    # Your provider's price in USD per million tokens; only used for the cost line of the summary.
+    price_input_per_million: float | None = Field(None, ge=0, le=1_000_000, allow_inf_nan=False)
+    price_output_per_million: float | None = Field(None, ge=0, le=1_000_000, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def _prices_come_in_pairs(self) -> Settings:
+        if (self.price_input_per_million is None) != (self.price_output_per_million is None):
+            raise ValueError(
+                "price-input-per-million and price-output-per-million must be set together"
+            )
+        return self
 
 
 _FIELDS = frozenset(Settings.model_fields)
@@ -60,7 +88,9 @@ def load_settings(
     explicit = bool(config_path)
     config_path = config_path or DEFAULT_CONFIG_PATH
     file_values = _read_file(base_dir, config_path, explicit=explicit, loader=config_loader)
-    merged: dict[str, Any] = {**file_values, **env_values, **(overrides or {})}
+    chosen = {**file_values, **env_values, **(overrides or {})}.get("preset")
+    preset_values = PRESETS.get(chosen, {}) if isinstance(chosen, str) else {}
+    merged: dict[str, Any] = {**preset_values, **file_values, **env_values, **(overrides or {})}
     if isinstance(merged.get("ignore"), str):
         merged["ignore"] = [ln.strip() for ln in merged["ignore"].splitlines() if ln.strip()]
     # The API key is read from the environment only (never from the repository file).

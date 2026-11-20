@@ -32,6 +32,7 @@ in the last column is what applies when neither sets it.
 |-------|---------|---------|
 | `provider`, `model`, `api-key`, `base-url` | Which model to call; see [providers](providers.md). `api-key` comes from a secret and is never read from a file. | none (`provider` is required) |
 | `language` | `en` or `tr` | `en` |
+| `preset` | `balanced`, `cheap` or `strict`: ready-made token budgets (see [configuration](configuration.md)) | `balanced` |
 | `max-input-tokens`, `max-output-tokens` | Token budgets | 6000 / 900 |
 | `ignore` | Extra globs to skip, one per line | none |
 | `include-drafts` | Also process draft PRs | `false` |
@@ -43,6 +44,7 @@ in the last column is what applies when neither sets it.
 | `github-token` | Token used to read the PR and write the comment | `${{ github.token }}` |
 | `cache` | Reuse the result for identical input | `true` |
 | `timeout-seconds` | Per-request timeout | 60 |
+| `price-input-per-million`, `price-output-per-million` | Your prices (USD per million tokens), set together; adds an estimated cost to the job summary | none |
 
 Precedence: defaults < `.pr-brief.yml` (base branch) < action inputs.
 

@@ -113,10 +113,16 @@ def _success_summary(result: RunResult, outcome: str, settings: Settings, second
         lines += [
             f"- Provider: `{sanitize_path(stats.provider)}`"
             f" · model: `{sanitize_path(stats.model)}`",
+            f"- Requests: {stats.requests}",
             f"- Tokens: input {stats.input_tokens} · output {stats.output_tokens}",
             f"- Cache: {cache}",
             f"- Files analyzed: {stats.analyzed} · skipped: {len(stats.skipped)}",
         ]
+        cost = _estimated_cost(stats.input_tokens, stats.output_tokens, settings)
+        if cost is not None:
+            lines.append(
+                f"- Estimated cost: ${cost:.4f} (from your own prices; your provider's bill counts)"
+            )
     lines.append(f"- Duration: {seconds:.1f} s")
     if settings.dry_run:
         lines += [
@@ -127,6 +133,14 @@ def _success_summary(result: RunResult, outcome: str, settings: Settings, second
             "</details>",
         ]
     return "\n".join(lines) + "\n"
+
+
+def _estimated_cost(input_tokens: int, output_tokens: int, settings: Settings) -> float | None:
+    """USD from the maintainer's own per-million prices; None unless both are configured."""
+    price_in, price_out = settings.price_input_per_million, settings.price_output_per_million
+    if price_in is None or price_out is None:
+        return None
+    return (input_tokens * price_in + output_tokens * price_out) / 1_000_000
 
 
 def _write_summary(env: Mapping[str, str], text: str) -> None:

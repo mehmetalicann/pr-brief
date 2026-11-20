@@ -19,6 +19,10 @@ model: gemini-3.5-flash-lite
 # Language of the generated comment: en | tr
 language: en
 
+# Ready-made token budgets: cheap (3000 in / 500 out), balanced (6000 / 900) or strict (12000 / 1500).
+# The two settings below still win over the preset when you set them.
+preset: balanced
+
 # Token budgets. Larger diffs are split into chunks and summarised in two steps.
 max-input-tokens: 6000   # 500 .. 200000
 max-output-tokens: 900   # 100 .. 16000
@@ -47,6 +51,11 @@ cache: true
 
 # Per-request timeout in seconds (retries are separate: at most two, with short backoff).
 timeout-seconds: 60
+
+# Optional: your provider's prices in USD per million tokens (set both). They only add an estimated
+# cost line to the job summary; pr-brief has no built-in price list. Example values:
+# price-input-per-million: 0.15
+# price-output-per-million: 0.60
 
 # Path of this file in the repository. Only needed when it lives somewhere else:
 # config-path: .github/pr-brief.yml

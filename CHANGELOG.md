@@ -5,6 +5,10 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- `preset` setting and input (`cheap`, `balanced`, `strict`): ready-made token budgets that single settings can still override.
+- Usage report in the job summary: number of provider requests and, when `price-input-per-million` and `price-output-per-million` are set, an estimated cost from your own prices.
+
 ## [1.1.0] - 2026-11-20
 
 ### Added

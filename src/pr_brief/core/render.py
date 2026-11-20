@@ -32,6 +32,7 @@ class RunStats:
     truncated: tuple[str, ...] = ()
     redactions: int = 0
     cached: bool = False
+    requests: int = 0
 
 
 def render_comment(brief: BriefOutput, stats: RunStats, *, language: str) -> str:

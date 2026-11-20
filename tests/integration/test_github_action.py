@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
 
 import pytest
@@ -166,6 +167,44 @@ def test_step_summary_reports_provider_tokens_and_outcome(
     run(env, github)
     text = summary_of(env)
     assert "mock" in text and "token" in text.lower() and "created" in text.lower()
+
+
+def test_summary_has_no_cost_line_without_prices(github: FakeGitHub, tmp_path: Path) -> None:
+    env = action_env(tmp_path)
+    run(env, github)
+    text = summary_of(env)
+    assert "Requests: 1" in text
+    assert "cost" not in text.lower()
+
+
+def test_summary_estimates_the_cost_from_the_users_own_prices(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    env = action_env(
+        tmp_path,
+        PR_BRIEF_PRICE_INPUT_PER_MILLION="1000000",
+        PR_BRIEF_PRICE_OUTPUT_PER_MILLION="500000",
+    )
+    run(env, github)
+    text = summary_of(env)
+    tokens = re.search(r"input (\d+) \D+ output (\d+)", text)
+    assert tokens, text
+    expected = int(tokens[1]) * 1 + int(tokens[2]) * 0.5
+    assert f"Estimated cost: ${expected:.4f}" in text
+    assert "your own prices" in text
+
+
+def test_a_cache_hit_costs_nothing(github: FakeGitHub, tmp_path: Path) -> None:
+    extra = {
+        "PR_BRIEF_CACHE_DIR": str(tmp_path / "cache"),
+        "PR_BRIEF_PRICE_INPUT_PER_MILLION": "1000000",
+        "PR_BRIEF_PRICE_OUTPUT_PER_MILLION": "1000000",
+    }
+    run(action_env(tmp_path, **extra), github)
+    env = action_env(tmp_path, **extra)
+    run(env, github)
+    text = summary_of(env)
+    assert "Cache: hit" in text and "Estimated cost: $0.0000" in text
 
 
 def test_provider_failure_fails_soft_and_keeps_the_old_comment(

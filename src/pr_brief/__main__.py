@@ -50,6 +50,7 @@ class RunResult:
 class _Usage:
     input_tokens: int = 0
     output_tokens: int = 0
+    requests: int = 0
     model: str = ""
 
 
@@ -117,6 +118,7 @@ def run_detailed(
         model=usage.model,
         input_tokens=usage.input_tokens,
         output_tokens=usage.output_tokens,
+        requests=usage.requests,
         omitted=plan.omitted,
         truncated=plan.truncated,
         redactions=redactions,
@@ -210,6 +212,7 @@ def _complete(
         result = provider.complete(
             p.system, p.user, json_schema=schema, timeout=settings.timeout_seconds
         )
+        usage.requests += 1
         usage.input_tokens += result.input_tokens
         usage.output_tokens += result.output_tokens
         usage.model = result.model

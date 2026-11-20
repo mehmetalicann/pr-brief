@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 import pr_brief.__main__ as entry
-from pr_brief.__main__ import main, run
+from pr_brief.__main__ import main, run, run_detailed
 from pr_brief.config import Settings, load_settings
 from pr_brief.core.prompts import PRMeta
 from pr_brief.core.render import MARKER
@@ -86,6 +86,20 @@ def test_one_repair_attempt_fixes_invalid_json(tmp_path: Path) -> None:
     assert len(provider.calls) == 2
     assert "rejected" in provider.calls[1].user
     assert '{"summary": "oops",}' in provider.calls[1].user
+
+
+def test_stats_count_every_provider_request(tmp_path: Path) -> None:
+    one = run_detailed(synthetic_diff(1, 3), settings(tmp_path), MockProvider(), meta())
+    assert one.stats is not None and one.stats.requests == 1
+
+    repaired = MockProvider(["oops", json.dumps(DEFAULT_BRIEF)])
+    result = run_detailed(synthetic_diff(1, 3), settings(tmp_path), repaired, meta())
+    assert result.stats is not None and result.stats.requests == 2
+
+    provider = MockProvider()
+    cfg = settings(tmp_path, PR_BRIEF_MAX_INPUT_TOKENS="1500")
+    many = run_detailed(synthetic_diff(4), cfg, provider, meta())
+    assert many.stats is not None and many.stats.requests == len(provider.calls) > 2
 
 
 def test_second_invalid_reply_fails_soft_with_schema_error(tmp_path: Path) -> None:

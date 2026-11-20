@@ -44,8 +44,20 @@ inputs:
     description: "Also process draft pull requests (default: false)."
     required: false
     default: ""
+  preset:
+    description: "Ready-made token budgets: balanced (default), cheap or strict. Single settings still override it."
+    required: false
+    default: ""
   skip-bots:
     description: "Skip pull requests opened by bots such as Dependabot (default: true)."
+    required: false
+    default: ""
+  price-input-per-million:
+    description: "Your provider's price in USD per million input tokens; with the output price it adds a cost estimate to the job summary."
+    required: false
+    default: ""
+  price-output-per-million:
+    description: "Your provider's price in USD per million output tokens (set together with the input price)."
     required: false
     default: ""
   allow-fork-target:
@@ -122,7 +134,10 @@ runs:
         PR_BRIEF_MAX_OUTPUT_TOKENS: ${{ inputs.max-output-tokens }}
         PR_BRIEF_IGNORE: ${{ inputs.ignore }}
         PR_BRIEF_INCLUDE_DRAFTS: ${{ inputs.include-drafts }}
+        PR_BRIEF_PRESET: ${{ inputs.preset }}
         PR_BRIEF_SKIP_BOTS: ${{ inputs.skip-bots }}
+        PR_BRIEF_PRICE_INPUT_PER_MILLION: ${{ inputs.price-input-per-million }}
+        PR_BRIEF_PRICE_OUTPUT_PER_MILLION: ${{ inputs.price-output-per-million }}
         PR_BRIEF_ALLOW_FORK_TARGET: ${{ inputs.allow-fork-target }}
         PR_BRIEF_DRY_RUN: ${{ inputs.dry-run }}
         PR_BRIEF_FAIL_ON_ERROR: ${{ inputs.fail-on-error }}
