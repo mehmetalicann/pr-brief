@@ -11,18 +11,16 @@ move it to the log below with the date.
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). Request and
    response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini was
    checked live on 2026-11-20 (see the log below); the other two have no key yet. Optional.
-2. **Security hardening decisions (need the maintainer's answer, they change security rules):**
-   (a) `pull_request_target` is accepted for fork PRs (documented as dangerous); option: refuse
-   fork PRs under it unless an explicit opt-in input is set. (b) The output sanitiser does not
-   defuse `#123` / `owner/repo#123` references, which GitHub turns into cross-reference links;
-   low severity. (c) The README workflow has no `concurrency` group, so two runs started
-   within seconds could both create a comment; option: add a per-PR group to the README example.
+
+## 2026-11-20 - Open item closed: three security hardening decisions (maintainer said "do all three")
+- Tests first (red, then green), then code. (a) Fork PRs under `pull_request_target` are now skipped unless the new action input `allow-fork-target: true` is set (`github/context.skip_reason`, `action.yml`, docs; same-repo PRs under that event are unaffected). (b) The output sanitiser wraps cross-repository references (`owner/repo#12`, `owner/repo@sha`) in backticks so GitHub creates no backlink; same-repo `#12` is left alone. (c) The README workflow and `dogfood.yml` have a per-PR `concurrency` group with `cancel-in-progress`; a test guards both.
+- Spec impact: one new action input (`allow-fork-target`), one stricter default; documented in README, `docs/action.md`, `docs/configuration.md`, `docs/security-model.md`, `docs/troubleshooting.md`.
 
 ## 2026-11-20 - Phase 5 closed: README verified on a real runner, security pass
 - README replayed offline: `tests/integration/test_readme_quick_start.py` reads the workflow out of README.md, maps its `with:` inputs through `action.yml`'s env wiring, and runs it against the fake GitHub API and a fake Gemini endpoint (one comment, push edits it, key only in the header, fork and missing-secret stay green). Mutation-checked: renamed input, hard-coded key, `pull_request_target`, bad model name each fail it.
 - Real runner (sandbox PR #2, closed, branch and secret deleted): the README workflow, copied verbatim with only the commit SHA filled in, produced one `github-actions[bot]` comment with real `gemini-3.5-flash-lite` output 29 s after the PR was opened (3 chunks, 13.7k input tokens). A second push updated the same comment (still exactly one). Fork behaviour is still covered by tests only.
 - Bug found by the trial: the footer link of every comment pointed to `README#configuration`, but the heading was "Settings". Now a test (`test_comment_footer_links_point_to_real_readme_sections`) guards it and the heading is "Configuration".
-- Security pass: reviewed the GitHub client, comment upsert, cache, sanitiser, provider HTTP layer and workflows. Confirmed: token only in the Authorization header, redirects off, responses size-capped, config read from the base commit, cache entries validated and re-sanitised on read, update target restricted to the bot's own marker comment, all actions pinned to SHAs, no `${{ }}` inside scripts. `zizmor` (workflow scanner, run from a throwaway venv, not a project dependency) found only Dependabot cooldown (fixed: 7 days, with a test) and a style hint (`$/` instead of `./`, left as is). No exploitable hole found; the three decisions in Open items 2 remain.
+- Security pass: reviewed the GitHub client, comment upsert, cache, sanitiser, provider HTTP layer and workflows. Confirmed: token only in the Authorization header, redirects off, responses size-capped, config read from the base commit, cache entries validated and re-sanitised on read, update target restricted to the bot's own marker comment, all actions pinned to SHAs, no `${{ }}` inside scripts. `zizmor` (workflow scanner, run from a throwaway venv, not a project dependency) found only Dependabot cooldown (fixed: 7 days, with a test) and a style hint (`$/` instead of `./`, left as is). No exploitable hole found; the three hardening decisions were then made and done, see the entry above.
 - `just check` and the Phase 5 acceptance are met; open: demo GIF (maintainer's screen recording) and the `@<full-commit-sha>` placeholder until the `v1` tag exists (Phase 6).
 
 ## 2026-11-20 - Phase 5: UX, docs, i18n (committed)
