@@ -8,11 +8,14 @@ Items that were not finished when their phase was closed. Before a new phase sta
 assistant must list these to the maintainer and ask whether to do them first. When one is done,
 move it to the log below with the date.
 
-1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic, Gemini). Request
-   and response shapes follow the vendors' documented APIs and are covered by mocks only. Optional
-   check with a real key via `scripts/record_fixture.py` (not written yet) or a one-off call.
-   Status 2026-11-15: maintainer will try later with a Gemini API key from Google AI Studio; Phase 4
-   starts without it (conscious decision), remind again at the end of Phase 4.
+1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). Request and
+   response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini was
+   checked live on 2026-11-20 (see the log below); the other two have no key yet. Optional.
+
+## 2026-11-20 - Open item partly closed: live Gemini test
+- `just live` with a Google AI Studio key (kept in the git-ignored `.env`, never shown to the assistant): `gemini-3.5-flash-lite` returned a schema-valid brief (2 passed, ~11 s). The request path (`/v1beta/models/{model}:generateContent`, `x-goog-api-key`) works against the real API.
+- Other models on the same key: `gemini-2.5-flash` and `gemini-2.5-flash-lite` answered 404 although they are listed by `models.list`; `gemini-flash-latest` and `gemini-3.5-flash` answered 503 (capacity) after the 2 retries. So the test default `gemini-2.5-flash` is outdated; set `PR_BRIEF_LIVE_GEMINI_MODEL` in `.env`.
+- Still open: OpenAI-compatible and Anthropic real endpoints (no key yet).
 
 ## 2026-11-19 - Open item closed: Phase 4 on a real GitHub runner
 - Committed and pushed Phase 4 (main CI green: `check` 3.11/3.12). Sandbox PR #1 on this repo (mock provider through `dogfood.yml`, temporary repository variables): the first run created exactly one comment by `github-actions[bot]`; a second push updated the same comment (same id, later `updated_at`), the result cache was restored from the previous run, and `action-smoke` was green. PR closed, branch and variables deleted.

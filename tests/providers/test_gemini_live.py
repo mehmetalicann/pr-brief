@@ -19,7 +19,7 @@ from pr_brief.core.render import MARKER
 from pr_brief.logging import register_secrets
 from pr_brief.providers.registry import get_provider
 
-MODEL = os.environ.get("PR_BRIEF_LIVE_GEMINI_MODEL", "").strip() or "gemini-2.5-flash"
+MODEL = os.environ.get("PR_BRIEF_LIVE_GEMINI_MODEL", "").strip() or "gemini-3.5-flash-lite"
 
 
 @pytest.mark.live
