@@ -6,9 +6,16 @@ from pathlib import Path
 
 import pytest
 
+from _support.dotenv import load_dotenv
 from _support.github_fake import FakeGitHub
 
 FIXTURES = Path(__file__).parent / "fixtures"
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    """Live runs only: read PR_BRIEF_* settings (e.g. the API key) from the git-ignored .env."""
+    if os.environ.get("RUN_LIVE") == "1":
+        load_dotenv(Path(config.rootpath) / ".env", os.environ)
 
 
 @pytest.fixture

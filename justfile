@@ -37,6 +37,10 @@ sec:
 # Definition of done for every phase.
 check: lint type cov sec
 
+# Live tests against real LLMs (Ollama, Gemini). Reads PR_BRIEF_* from the git-ignored .env.
+live:
+    RUN_LIVE=1 {{py}} -m pytest -q -m live -s
+
 # Regenerate the hash-locked runtime requirements that action.yml installs (use Python 3.12,
 # the version the action runs on).
 lock:
