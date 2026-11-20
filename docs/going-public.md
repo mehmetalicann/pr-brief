@@ -109,7 +109,7 @@ scanning; that is why these steps are listed for the moment of publishing.
 
 ## 4. Add when the repository becomes public
 
-- `codeql.yml` (code scanning is free for public repositories); it is part of the roadmap.
+- `codeql.yml` is already in the repository and skips itself while it is private; after the switch, check under Security, Code scanning that the first run succeeded.
 - Repository description and topics (`github-action`, `pull-request`, `llm`, `code-review`).
 - Labels from the roadmap (`good first issue`, `provider`, `security`).
 

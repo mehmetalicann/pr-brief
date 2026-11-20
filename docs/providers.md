@@ -21,8 +21,17 @@ pr-brief talks to models over plain HTTP (`httpx`); there are no vendor SDKs. Pi
 | `anthropic` | No, mock-only: shapes follow the vendor's documentation and were not called live. |
 
 Everything else in this file (retries, size caps, key handling) is covered by the shared contract
-tests for all four adapters. A live check of the two mock-only adapters needs a paid key; add it to
-`tests/providers/` next to `test_gemini_live.py` and update this table.
+tests for all four adapters. The live checks of the two mock-only adapters are written
+(`tests/providers/test_openai_live.py`, `test_anthropic_live.py`) but have not been run yet, because
+they need a paid key. To run them, put these in the git-ignored `.env` (a separate key per vendor,
+never the key of another one) and run `just live`:
+
+| Test | `.env` entries |
+|------|----------------|
+| OpenAI | `PR_BRIEF_LIVE_OPENAI_KEY`, `PR_BRIEF_LIVE_OPENAI_MODEL` |
+| Anthropic | `PR_BRIEF_LIVE_ANTHROPIC_KEY`, optionally `PR_BRIEF_LIVE_ANTHROPIC_MODEL` |
+
+When one passes, change its row above to "Yes" (and the README table).
 
 Examples:
 

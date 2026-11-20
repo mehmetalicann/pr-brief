@@ -31,6 +31,7 @@ class FakeGitHub:
             "title": "Add feature",
             "body": "Longer description",
             "draft": False,
+            "user": {"login": "octocat", "type": "User"},
             "labels": [{"name": "enhancement"}],
             "base": {"ref": "main", "sha": BASE_SHA, "repo": {"full_name": "octo/demo"}},
             "head": {"ref": "feature", "sha": HEAD_SHA, "repo": {"full_name": "octo/demo"}},

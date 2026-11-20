@@ -122,6 +122,38 @@ def test_draft_pull_requests_are_skipped_unless_enabled(github: FakeGitHub, tmp_
     assert len(github.comments) == 1
 
 
+def test_bot_authored_pull_requests_are_skipped_by_default(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    github.pull["user"] = {"login": "dependabot[bot]", "type": "Bot"}
+    env = action_env(tmp_path)
+    code, factory = run(env, github)
+    assert code == 0 and github.comments == [] and factory.provider.calls == []
+    assert "skip-bots" in summary_of(env)
+
+
+def test_bot_pull_requests_can_be_enabled(github: FakeGitHub, tmp_path: Path) -> None:
+    github.pull["user"] = {"login": "dependabot[bot]", "type": "Bot"}
+    code, _ = run(action_env(tmp_path, PR_BRIEF_SKIP_BOTS="false"), github)
+    assert code == 0 and len(github.comments) == 1
+
+
+def test_bot_skipping_can_be_switched_off_in_the_base_config(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    github.pull["user"] = {"login": "renovate[bot]", "type": "Bot"}
+    github.files[(BASE_SHA, ".pr-brief.yml")] = "skip-bots: false\n"
+    code, _ = run(action_env(tmp_path), github)
+    assert code == 0 and len(github.comments) == 1
+
+
+def test_human_pull_requests_are_unaffected_by_skip_bots(
+    github: FakeGitHub, tmp_path: Path
+) -> None:
+    code, _ = run(action_env(tmp_path), github)
+    assert code == 0 and len(github.comments) == 1
+
+
 def test_unrelated_events_do_nothing(github: FakeGitHub, tmp_path: Path) -> None:
     code, _ = run(action_env(tmp_path, event_name="push"), github)
     assert code == 0 and github.requests == []

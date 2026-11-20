@@ -106,6 +106,7 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `max-output-tokens` | `900` | Token budget for the answer |
 | `ignore` | none | Extra globs to skip, one per line |
 | `include-drafts` | `false` | Also process draft PRs |
+| `skip-bots` | `true` | Skip PRs opened by bots such as Dependabot (set `false` to process them) |
 | `allow-fork-target` | `false` | Also process fork PRs under `pull_request_target` (unsafe, read the [security model](docs/security-model.md)) |
 | `dry-run` | `false` | Print instead of posting |
 | `fail-on-error` | `false` | Fail the job on errors (default: stay green) |

@@ -32,6 +32,16 @@ MAX_JSON_BYTES = 2_000_000
 MAX_FILE_BYTES = 128 * 1024
 MAX_DIFF_BYTES = 10_000_000
 RETRYABLE_STATUS = frozenset({429, 500, 502, 503, 504})
+
+
+def _is_bot(user: object) -> bool:
+    """True for GitHub App accounts such as `dependabot[bot]` (the author is set by GitHub)."""
+    if not isinstance(user, dict):
+        return False
+    login = user.get("login")
+    return user.get("type") == "Bot" or (isinstance(login, str) and login.endswith("[bot]"))
+
+
 _REPO_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$")
 
 
@@ -46,6 +56,7 @@ class PullRequest:
     base_sha: str
     head_ref: str
     is_fork: bool
+    author_is_bot: bool = False
 
 
 def check_repo(repo: str) -> str:
@@ -101,6 +112,7 @@ class GitHubClient:
                 base_sha=str(base["sha"]),
                 head_ref=str(head["ref"]),
                 is_fork=not isinstance(head_repo, str) or head_repo.lower() != base_repo.lower(),
+                author_is_bot=_is_bot(data.get("user")),
             )
         except (KeyError, TypeError, AttributeError, ValueError):
             raise _unexpected() from None

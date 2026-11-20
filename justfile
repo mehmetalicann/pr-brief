@@ -27,7 +27,7 @@ test:
     {{py}} -m pytest -q -m "not live"
 
 cov:
-    {{py}} -m pytest -q -m "not live" --cov=src/pr_brief --cov-report=term-missing --cov-fail-under=90
+    {{py}} -m pytest -q -m "not live" --cov=src/pr_brief --cov-report=term-missing --cov-report=xml --cov-fail-under=90
 
 sec:
     {{py}} -m bandit -q -r src

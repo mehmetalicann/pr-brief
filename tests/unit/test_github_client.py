@@ -27,6 +27,24 @@ def test_get_pull_parses_metadata(github: FakeGitHub) -> None:
     assert pull.is_fork is False
 
 
+def test_pull_author_kind_is_exposed(github: FakeGitHub) -> None:
+    assert make(github).get_pull("octo/demo", 7).author_is_bot is False
+    github.pull["user"] = {"login": "dependabot[bot]", "type": "Bot"}
+    assert make(github).get_pull("octo/demo", 7).author_is_bot is True
+
+
+def test_a_bot_login_counts_even_when_the_type_is_missing(github: FakeGitHub) -> None:
+    github.pull["user"] = {"login": "renovate[bot]"}
+    assert make(github).get_pull("octo/demo", 7).author_is_bot is True
+
+
+def test_a_pull_without_author_data_is_not_a_bot(github: FakeGitHub) -> None:
+    del github.pull["user"]
+    assert make(github).get_pull("octo/demo", 7).author_is_bot is False
+    github.pull["user"] = None
+    assert make(github).get_pull("octo/demo", 7).author_is_bot is False
+
+
 def test_pull_from_another_repository_is_a_fork(github: FakeGitHub) -> None:
     github.pull["head"]["repo"] = {"full_name": "someone/demo"}
     assert make(github).get_pull("octo/demo", 7).is_fork is True

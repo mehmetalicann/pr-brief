@@ -5,6 +5,11 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Opt-in live tests for the OpenAI-compatible and Anthropic adapters (`just live`, separate keys).
+- A `codeql.yml` workflow that runs only on public repositories; CI keeps the coverage report as a job-summary table and an artifact.
+- `skip-bots` input and setting (default `true`): pull requests opened by bots such as Dependabot are skipped.
+
 ### Fixed
 - `dogfood.yml` no longer shares its `concurrency` group with the README workflow: a skipped
   workflow still takes the group and cancelled the real run (found on a real runner). Documented

@@ -8,15 +8,21 @@ Items that were not finished when their phase was closed. Before a new phase sta
 assistant must list these to the maintainer and ask whether to do them first. When one is done,
 move it to the log below with the date.
 
-1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). Request and
-   response shapes follow the vendors' documented APIs and are covered by mocks only. Gemini and
-   Ollama were checked live. The README and `docs/providers.md` now say so under "Verification
-   status" (a test keeps both honest). Closing it needs a paid key and one `tests/providers/`
-   live test per vendor. Optional, does not block the release.
-2. **Phase 6: the `v1.0.0` tag is not cut yet.** The tree is prepared (see the entry below) and the
-   release dry run is expected to be green. Waiting for the maintainer: the go-ahead to tag, and
-   whether to sign the tag (needs a signing key on the GitHub account; `docs/releasing.md`). After
-   the tag: the manual Marketplace publication, `codeql.yml` (needs a public repository).
+1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
+2. **Manual steps that only the maintainer can do:** tag signing key (optional, recommended before going public; `docs/releasing.md`) and the Marketplace publication (name uniqueness can only be checked in the listing form).
+3. **Unreleased changes** (`skip-bots`, `codeql.yml`, CI coverage artifact) need a `v1.1.0` release to reach `@v1` users.
+
+## 2026-11-20 - Open items worked off before Phase 7 (maintainer: "do these first")
+- New `skip-bots` setting/input (default `true`, schema change approved): PRs whose author is a GitHub App (`type == Bot` or login `[bot]`) end with a neutral skip; tests first (config, client, integration incl. base-config override), docs in README, `docs/action.md`, `configuration.md`, `troubleshooting.md`, `.pr-brief.example.yml`; L7 row in the security model updated.
+- CI keeps coverage without an external service: `coverage report --format=markdown` into the job summary and `coverage.xml` as an artifact (`actions/upload-artifact` pinned to a SHA, 3.12 job only); a test guards it.
+- `codeql.yml` added (SHA-pinned, `security-extended`, least privilege, skips itself while the repository is private); a test guards it; zizmor still shows only the two low `$/` hints.
+- Live tests for OpenAI-compatible and Anthropic written with separate env keys so another vendor's key can never be sent by accident; skipped without keys.
+- `just check` passes: 744 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean.
+
+## 2026-11-20 - v1.0.0 released, `@v1` verified on a real runner
+- Tag `v1.0.0` (annotated, unsigned) cut on `ead6fc5`; `release.yml` passed the gate and `just check`, published the GitHub release with `sbom.cdx.json` and moved the major tag `v1` to the same commit.
+- Sandbox PR #4 used the README workflow verbatim with `@v1`: without a secret the run stayed green and logged the fail-soft `api-key is required` message; with a real Gemini key it posted one `github-actions[bot]` comment and a second push edited it in place (still one comment). PR, branch and secret deleted afterwards.
+- Bug found by the trial: `dogfood.yml` shared its `concurrency` group with the README workflow, and a skipped workflow still took the group and cancelled the real run. Own group now, guarded by a test, documented in `docs/troubleshooting.md` (commit `6eda46a`).
 
 ## 2026-11-20 - Phase 6 prepared: gaps closed, tree ready for v1.0.0 (tag not cut)
 - Real runner dry run of `release.yml` (manual, tag `v1.0.0`): found a bug on the way, `git fetch` without credentials failed on the private repository (checkout runs with `persist-credentials: false`); removed (checkout with `fetch-depth: 0` already has `origin/main`) and guarded by a test. Before the version bump the dry run was rejected by the gate for the right reasons (versions, CHANGELOG, README notice) and `publish` was skipped.

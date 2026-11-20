@@ -17,6 +17,7 @@ def test_defaults_match_the_spec(tmp_path: Path) -> None:
     assert (s.max_input_tokens, s.max_output_tokens) == (6000, 900)
     assert s.ignore == []
     assert (s.include_drafts, s.dry_run, s.fail_on_error, s.cache) == (False, False, False, True)
+    assert s.skip_bots is True
     assert s.config_path == ".pr-brief.yml"
     assert s.timeout_seconds == 60
     assert s.api_key is None

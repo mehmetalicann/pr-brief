@@ -35,6 +35,7 @@ in the last column is what applies when neither sets it.
 | `max-input-tokens`, `max-output-tokens` | Token budgets | 6000 / 900 |
 | `ignore` | Extra globs to skip, one per line | none |
 | `include-drafts` | Also process draft PRs | `false` |
+| `skip-bots` | Skip PRs opened by bots (Dependabot, Renovate, ...) | `true` |
 | `allow-fork-target` | Also process fork PRs under `pull_request_target`. Unsafe: that event gives fork PRs secrets and a write token. Read the [security model](security-model.md) first. | `false` |
 | `dry-run` | Print the comment to the log and the job summary, post nothing | `false` |
 | `fail-on-error` | Fail the job on errors (default: fail soft, exit 0) | `false` |
@@ -50,6 +51,7 @@ Precedence: defaults < `.pr-brief.yml` (base branch) < action inputs.
 - Runs for `opened`, `synchronize`, `reopened`, `ready_for_review`; any other event or action is
   a neutral no-op.
 - **Draft PRs** are skipped unless `include-drafts: true`.
+- **Bot PRs** (author is a GitHub App such as `dependabot[bot]`) are skipped unless `skip-bots: false`.
 - **Fork PRs** under `pull_request` get no secrets and a read-only token, so the run is skipped
   with a notice in the job summary (exit 0). Under `pull_request_target` fork PRs are skipped too, unless `allow-fork-target: true`
   is set; see the [security model](security-model.md) before using it.

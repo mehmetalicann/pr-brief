@@ -60,6 +60,10 @@ def run_github(
         fail_hard = settings.fail_on_error
         if pull.draft and not settings.include_drafts:
             return _skipped(env, "this pull request is a draft (set include-drafts to process it)")
+        if pull.author_is_bot and settings.skip_bots:
+            return _skipped(
+                env, "this pull request was opened by a bot (set skip-bots: false to process it)"
+            )
         provider = provider_factory(settings)  # fails early on a missing api-key
         meta = PRMeta(
             title=pull.title,

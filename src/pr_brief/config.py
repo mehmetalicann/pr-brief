@@ -30,6 +30,7 @@ class Settings(BaseModel):
     max_output_tokens: int = Field(900, ge=100, le=16_000)
     ignore: list[str] = Field(default_factory=list)
     include_drafts: bool = False
+    skip_bots: bool = True
     dry_run: bool = False
     fail_on_error: bool = False
     config_path: str = DEFAULT_CONFIG_PATH

@@ -32,6 +32,10 @@ ignore:
 # Also write a brief for draft pull requests.
 include-drafts: false
 
+# Skip pull requests opened by bots (Dependabot, Renovate, ...). They usually get no secrets and
+# a brief on a version bump costs money for little value. Set to false to process them.
+skip-bots: true
+
 # Print the comment to the job log and summary instead of posting it. Good for a first trial.
 dry-run: false
 

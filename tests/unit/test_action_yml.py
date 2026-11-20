@@ -21,6 +21,7 @@ SPEC_INPUTS = {
     "max-output-tokens",
     "ignore",
     "include-drafts",
+    "skip-bots",
     "allow-fork-target",
     "dry-run",
     "fail-on-error",
@@ -299,3 +300,32 @@ def test_concurrency_groups_never_collide_across_workflows() -> None:
         if group:
             groups[wf.name] = group["group"] if isinstance(group, dict) else group
     assert len(set(groups.values())) == len(groups), groups
+
+
+def test_ci_keeps_the_coverage_report_without_an_external_service() -> None:
+    """Coverage is an artifact of a pinned action plus a job-summary table; no upload service."""
+    steps = load(".github/workflows/ci.yml")["jobs"]["check"]["steps"]
+    upload = next(s for s in steps if s.get("uses", "").startswith("actions/upload-artifact@"))
+    assert re.fullmatch(r"actions/upload-artifact@[0-9a-f]{40}", upload["uses"])
+    assert upload["with"]["path"] == "coverage.xml"
+    assert "matrix.python-version" in str(upload.get("if", ""))
+    text = "\n".join(s.get("run", "") for s in steps)
+    assert "GITHUB_STEP_SUMMARY" in text and "coverage report" in text
+    assert "--cov-report=xml" in (ROOT / "justfile").read_text(encoding="utf-8")
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert "codecov" not in ci.lower()
+
+
+def test_codeql_workflow_only_runs_on_a_public_repository_and_is_least_privilege() -> None:
+    """Code scanning needs GitHub Advanced Security on private repositories, free on public ones."""
+    wf = load(".github/workflows/codeql.yml")
+    job = wf["jobs"]["analyze"]
+    assert job["if"].replace(" ", "") == "github.event.repository.private==false"
+    assert wf["permissions"] == {"contents": "read"}
+    assert job["permissions"] == {"contents": "read", "security-events": "write"}
+    uses = [s["uses"] for s in job["steps"] if "uses" in s]
+    assert all(re.fullmatch(r"[\w./-]+@[0-9a-f]{40}", u) for u in uses)
+    init = next(s for s in job["steps"] if "codeql-action/init" in s.get("uses", ""))
+    assert init["with"]["languages"] == "python"
+    checkout = next(s for s in job["steps"] if s.get("uses", "").startswith("actions/checkout"))
+    assert checkout["with"]["persist-credentials"] is False
