@@ -276,5 +276,6 @@ class HttpProvider:
             )
         return ProviderError(
             f"{self.name}: the request was rejected (HTTP {status}).",
-            hint="check the model name and max-output-tokens.",
+            hint="check the model name, max-output-tokens and that the api-key is valid"
+            " (some providers answer a wrong key with HTTP 400).",
         )

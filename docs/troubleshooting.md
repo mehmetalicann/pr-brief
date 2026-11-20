@@ -29,7 +29,7 @@ Messages below are quoted as the action prints them (the provider name varies).
 | "rate limit or quota exceeded (HTTP 429)" | Quota or per-minute limit reached (free tiers are small). pr-brief retries twice with short waits, then gives up. Lower `max-input-tokens`, use a cheaper model, or check billing. Re-running the workflow later also works. |
 | "... is unavailable (HTTP 500/502/503/504)" | The provider is overloaded or down, often only for a while. Re-run later or pick another model. |
 | "the request timed out" | Raise `timeout-seconds`, or use a faster model. Local models on small machines are often slow. |
-| "the request was rejected (HTTP 400)" | Usually a bad model name or `max-output-tokens` the model does not accept. Newer OpenAI models can reject `max_tokens`; see the known limits in [providers](providers.md). |
+| "the request was rejected (HTTP 400)" | A bad model name, a `max-output-tokens` the model does not accept, or a wrong `api-key`: Gemini answers an invalid key with HTTP 400, not 401 (check that the secret holds only the key, without quotes or spaces). Newer OpenAI models can reject `max_tokens`; see the known limits in [providers](providers.md). |
 | "the response is not valid JSON" | `base-url` does not point at the API (for example a web page or a login redirect). Redirects are never followed. |
 | "Model output is not valid JSON ..." (or a message about the output structure) | The model did not return the expected structure, even after one repair attempt. Try a more capable model. |
 

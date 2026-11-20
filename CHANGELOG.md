@@ -7,6 +7,9 @@ versioning: [SemVer](https://semver.org/).
 
 ## [1.2.0] - 2026-11-20
 
+### Fixed
+- An HTTP 400 from a provider now also hints at the `api-key` (Gemini answers an invalid key with 400 instead of 401).
+
 ### Added
 - `/pr-brief refresh` comment command (opt-in via the `issue_comment` trigger, owners, members and collaborators only, forks skipped, cache bypassed): see `docs/refresh.md` and ADR 7.
 - `preset` setting and input (`cheap`, `balanced`, `strict`): ready-made token budgets that single settings can still override.

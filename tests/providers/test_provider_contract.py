@@ -107,6 +107,18 @@ def test_client_errors_name_the_status_and_are_not_retried(
     assert len(rec.requests) == 1
 
 
+def test_a_rejected_request_hint_also_mentions_the_api_key(
+    spec: Any, rec: Any, make: Any, api_key: str
+) -> None:
+    """Some vendors (Gemini) answer an invalid key with HTTP 400, not 401."""
+    rec.then_json({}, 400)
+    with pytest.raises(ProviderError) as exc:
+        call(make(spec, rec))
+    hint = exc.value.user_message().lower()
+    assert "api-key" in hint and "model" in hint
+    assert api_key not in hint
+
+
 def test_timeouts_are_retried_then_reported(spec: Any, rec: Any, make: Any, api_key: str) -> None:
     def boom(request: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("slow", request=request)

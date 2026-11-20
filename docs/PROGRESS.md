@@ -10,7 +10,7 @@ move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
 2. **Marketplace publication** (manual, not urgent; the maintainer asked to be reminded and to be walked through `docs/marketplace.md`). Name uniqueness can only be checked in the listing form. Remind before going public.
-3. **`v1.2.0` is prepared, tag not cut** (usage report, presets, `/pr-brief refresh`). The refresh command still needs its real-runner trial (comment workflows run only from `main`; needs the maintainer's key as a secret); decide whether to tag before or after it. Needs the maintainer to sign the tag.
+3. **`v1.2.0` is prepared, tag not cut** (usage report, presets, `/pr-brief refresh`). The refresh trial passed. Needs the maintainer to sign the tag.
 4. **Item 1 knowingly left open** (no paid key for now), see above.
 
 ## 2026-11-20 - Phase 7 started: usage report and presets (maintainer picked usage report, presets, `/pr-brief refresh`)
@@ -18,7 +18,8 @@ move it to the log below with the date.
 - Presets: `preset: balanced | cheap | strict` sets only the token budgets (cheap 3000/500, balanced 6000/900, strict 12000/1500); single settings from file, environment or inputs still win; a test proves presets cannot touch anything but the two budgets. One new setting/input.
 - Committed as `ebbb947` (usage report, presets).
 - `/pr-brief refresh` (design approved by the maintainer, ADR 7, `docs/refresh.md`): opt-in `issue_comment` trigger; exact command, new comments only, by a person with association OWNER/MEMBER/COLLABORATOR, on a PR; forks skipped unless `allow-fork-target`; cache bypassed; same comment edited. Tests first; mutation-checked (adding `NONE` to the allowed list, dropping the bot check, prefix matching and dropping the fork check each fail tests). The workflow filter and the action check the same rules, and a test compares the two. No new input or setting.
-- **Not verified on a real runner yet:** comment-triggered workflows only run from the default branch, so a trial needs the workflow on `main` (a temporary trial workflow) and the maintainer's key as a secret. Open until done.
+- **Verified on a real runner (sandbox PR #5, closed; trial workflow, branch and secret removed):** the pull request run posted the brief; `/pr-brief refresh` from the owner edited the same comment (still one); an unrelated comment posted during a running brief was skipped and did not cancel it (job-level `concurrency`); a mangled command text was ignored.
+- Found on the way: Gemini answers a wrong or empty key with HTTP 400, and the message only suggested the model name and `max-output-tokens`. The hint now also mentions the `api-key` (contract test for all four adapters, troubleshooting row updated). Trial pitfalls, not product bugs: `!` commands cannot prompt (use a pipe from `.env`), and Git Bash rewrites `/pr-brief` into a path (set `MSYS_NO_PATHCONV=1`).
 - `just check` passes: 820 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean. Not committed yet.
 - `just check` passes: 767 tests (+4 skipped, 4 deselected), coverage 98%, bandit, pip-audit, gitleaks clean.
 
