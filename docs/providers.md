@@ -11,6 +11,19 @@ pr-brief talks to models over plain HTTP (`httpx`); there are no vendor SDKs. Pi
 | `anthropic` | `https://api.anthropic.com` | yes | no | Messages API. |
 | `gemini` | `https://generativelanguage.googleapis.com` | yes | no | `generateContent`; the key is sent in a header, never in the URL. |
 
+## Verification status
+
+| `provider` | Checked against the real service |
+|------------|----------------------------------|
+| `ollama` | Yes (local, `llama3.2`; `just live`). |
+| `gemini` | Yes (`gemini-3.5-flash-lite`; `just live`, and the README quick start on a real runner). |
+| `openai-compatible` | No, mock-only: shapes follow the vendor's documentation and were not called live. |
+| `anthropic` | No, mock-only: shapes follow the vendor's documentation and were not called live. |
+
+Everything else in this file (retries, size caps, key handling) is covered by the shared contract
+tests for all four adapters. A live check of the two mock-only adapters needs a paid key; add it to
+`tests/providers/` next to `test_gemini_live.py` and update this table.
+
 Examples:
 
 ```yaml

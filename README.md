@@ -3,9 +3,8 @@
 A GitHub Action that writes (and keeps up to date) **one** comment on each pull request:
 a short summary, a suggested Conventional Commits message, and a risk/review checklist.
 
-> **Status: release candidate.** The `v1` tag is not published yet. Until `v1.0.0` is released,
-> pin the action to a full commit SHA of `main` (shown below). Progress:
-> [`docs/PROGRESS.md`](docs/PROGRESS.md).
+> **Status: pre-release.** The first release, `v1.0.0`, is not published yet, so the `@v1`
+> reference below only resolves after it is. Progress: [`docs/PROGRESS.md`](docs/PROGRESS.md).
 
 ## Why
 
@@ -37,7 +36,7 @@ jobs:
   brief:
     runs-on: ubuntu-latest
     steps:
-      - uses: mehmetalicann/pr-brief@<full-commit-sha>   # use @v1 once it is published
+      - uses: mehmetalicann/pr-brief@v1
         with:
           provider: gemini
           model: gemini-3.5-flash-lite
@@ -50,7 +49,19 @@ No `actions/checkout` step is needed. To see the result first without posting an
 `dry-run: true`: the comment then appears in the job log and the job summary. Model names change
 over time; use one that your provider currently lists.
 
+**Pinning.** `@v1` follows the newest 1.x release. For a stricter setup, pin the action to a full
+commit SHA instead, because a tag can be moved and a SHA cannot: write `@` followed by the
+40-character SHA of a release and keep the version as a comment (`# v1.0.0`). The SHA of each
+release is on the Releases page, or run `git ls-remote https://github.com/mehmetalicann/pr-brief
+refs/tags/v1.0.0`. Dependabot can keep a pinned SHA up to date.
+
 ### What the comment looks like
+
+![A pull request gets one PR Brief comment, and a new push edits that same comment](docs/assets/demo.gif)
+
+An illustration, not a screen recording: the page is drawn, the comment is produced by this
+project's real renderer, and the model's answer is canned. Regenerate it with
+`python scripts/make_demo_gif.py` ([how](scripts/make_demo_gif.md)). The text version:
 
 ````markdown
 ## PR Brief
@@ -105,6 +116,21 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `github-token` | `${{ github.token }}` | Token for reading the PR and writing the comment |
 | `cache` | `true` | Reuse results for identical input |
 | `timeout-seconds` | `60` | Per-request timeout |
+
+### Verification status
+
+Which provider adapters were checked against the real service, and which only against mocks of the
+vendor's documented API:
+
+| `provider` | Checked against the real service |
+|------------|----------------------------------|
+| `ollama` | Yes (local, `llama3.2`). |
+| `gemini` | Yes (`gemini-3.5-flash-lite`, also through the README quick start on a real runner). |
+| `openai-compatible` | No, mock-only: request and response shapes follow the vendor's documentation but were not called live yet. |
+| `anthropic` | No, mock-only: request and response shapes follow the vendor's documentation but were not called live yet. |
+
+If one of the mock-only adapters misbehaves, the job stays green and the log says why; please
+[open an issue](https://github.com/mehmetalicann/pr-brief/issues).
 
 ## Design goals
 
@@ -185,7 +211,8 @@ just check                # lint + types + tests/coverage + security scans
 just run-local            # offline run on a fixture diff with the mock provider
 ```
 
-Tasks are defined in the `justfile` (`just --list`). See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+Tasks are defined in the `justfile` (`just --list`). See [`CONTRIBUTING.md`](CONTRIBUTING.md);
+how a release is cut: [`docs/releasing.md`](docs/releasing.md).
 
 ## License
 

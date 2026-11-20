@@ -29,7 +29,7 @@ ROOT = Path(__file__).resolve().parents[2]
 SECRET_KEY = "AIza" + "README-QUICKSTART-1234567890abcdef"  # fake, built at runtime
 INPUT_REF = re.compile(r"^\$\{\{\s*inputs\.([a-z-]+)\s*\}\}$")
 SECRET_REF = re.compile(r"\$\{\{\s*secrets\.(\w+)\s*\}\}")
-PINNED = re.compile(r"^mehmetalicann/pr-brief@(?:v\d+|<full-commit-sha>|[0-9a-f]{40})$")
+PINNED = re.compile(r"^mehmetalicann/pr-brief@(?:v\d+|[0-9a-f]{40})$")  # never a placeholder
 
 
 @pytest.fixture(autouse=True)

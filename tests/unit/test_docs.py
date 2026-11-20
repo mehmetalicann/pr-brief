@@ -114,3 +114,30 @@ def test_comment_footer_links_point_to_real_readme_sections() -> None:
     anchors = {a for s in strings for a in re.findall(r"\{url\}#([\w-]+)", s)}
     assert anchors, "expected at least one footer anchor"
     assert anchors <= slugs, f"README has no section for: {sorted(anchors - slugs)}"
+
+
+def _section(text: str, heading: str) -> str:
+    match = re.search(rf"^#+ {re.escape(heading)}\s*$(.*?)(?=^#+ |\Z)", text, re.M | re.S)
+    assert match, f"missing section: {heading}"
+    return match.group(1)
+
+
+@pytest.mark.parametrize("name", ["README.md", "docs/providers.md"])
+def test_provider_verification_status_is_stated_for_every_real_provider(name: str) -> None:
+    from pr_brief.providers.registry import HTTP_PROVIDERS
+
+    section = _section((ROOT / name).read_text(encoding="utf-8"), "Verification status").lower()
+    for provider in HTTP_PROVIDERS:
+        assert provider in section, f"{name}: no verification status for {provider}"
+    # the two adapters without a live check must say so plainly
+    for provider in ("openai-compatible", "anthropic"):
+        line = next(ln for ln in section.splitlines() if provider in ln)
+        assert "mock" in line and "not" in line, f"{name}: {provider} must say it is mock-only"
+
+
+def test_readme_pins_the_action_to_a_release_tag_never_a_placeholder() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    refs = re.findall(r"pr-brief@(\S+)", readme)
+    assert refs and all(re.fullmatch(r"v\d+|[0-9a-f]{40}", r) for r in refs), refs
+    assert "<full-commit-sha>" not in readme
+    assert "full commit SHA" in " ".join(readme.split())  # the strict-pinning advice exists
