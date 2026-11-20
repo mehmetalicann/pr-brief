@@ -141,3 +141,26 @@ def test_readme_pins_the_action_to_a_release_tag_never_a_placeholder() -> None:
     assert refs and all(re.fullmatch(r"v\d+|[0-9a-f]{40}", r) for r in refs), refs
     assert "<full-commit-sha>" not in readme
     assert "full commit SHA" in " ".join(readme.split())  # the strict-pinning advice exists
+
+
+ADR_DIR = ROOT / "docs" / "adr"
+
+
+def test_architecture_decisions_are_recorded_in_a_consistent_format() -> None:
+    adrs = sorted(p for p in ADR_DIR.glob("[0-9][0-9][0-9][0-9]-*.md"))
+    assert len(adrs) >= 5, "the spec asks for ADRs on the important decisions"
+    assert [p.name[:4] for p in adrs] == [f"{i:04d}" for i in range(1, len(adrs) + 1)]
+    for adr in adrs:
+        text = adr.read_text(encoding="utf-8")
+        assert text.startswith(f"# {int(adr.name[:4])}. "), adr.name
+        for heading in ("Status", "Context", "Decision", "Consequences"):
+            assert re.search(rf"^## {heading}\s*$", text, re.M), f"{adr.name}: no '## {heading}'"
+        for target in LINK.findall(text):
+            if not re.match(r"[a-z][a-z0-9+.-]*:", target) and not target.startswith("#"):
+                assert (adr.parent / target.split("#", 1)[0]).exists(), f"{adr.name}: {target}"
+
+
+def test_contributing_guide_explains_how_to_add_a_provider() -> None:
+    text = (ROOT / "CONTRIBUTING.md").read_text(encoding="utf-8").lower()
+    assert "later phase" not in text
+    assert "docs/providers.md" in text and "docs/adr" in text

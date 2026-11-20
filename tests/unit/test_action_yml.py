@@ -271,3 +271,12 @@ def test_release_verification_does_not_fetch_without_credentials() -> None:
     checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
     assert checkout["with"]["fetch-depth"] == 0
     assert all("git fetch" not in s.get("run", "") for s in steps)
+
+
+def test_ci_runs_pip_audit_and_gitleaks_in_a_separate_job() -> None:
+    """Spec 7.4: a dependency or secret finding must be visible on its own, not inside `check`."""
+    jobs = load(".github/workflows/ci.yml")["jobs"]
+    text = "\n".join(s.get("run", "") for s in jobs["security"]["steps"])
+    assert "just sec" in text and "gitleaks" in text
+    checkout = next(s for s in jobs["security"]["steps"] if "checkout" in s.get("uses", ""))
+    assert checkout["with"]["fetch-depth"] == 0  # gitleaks scans the history

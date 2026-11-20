@@ -21,4 +21,8 @@ Security problems go through [`SECURITY.md`](SECURITY.md), never through public 
 - `PROJECT_SPEC.md` is the maintainer's design specification (written in Turkish). If you are
   unsure whether something is in scope, open an issue first.
 
-A "add a provider in 4 steps" guide is added in a later phase.
+## Adding a provider
+
+Four steps, with the file to touch for each: [`docs/providers.md`](docs/providers.md#add-a-provider-in-4-steps).
+Decisions that shaped the project (and why) are recorded in [`docs/adr/`](docs/adr/README.md); write
+a new record there when you change one of them.
