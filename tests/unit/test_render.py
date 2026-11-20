@@ -107,8 +107,17 @@ def test_rendering_is_deterministic() -> None:
 
 
 def test_unknown_language_falls_back_to_english() -> None:
-    assert t("tr", "title") == "PR Brief"
-    assert "## PR Brief" in render_comment(brief(), STATS, language="tr")
+    assert t("xx", "title") == "PR Brief"
+    assert "## PR Brief" in render_comment(brief(), STATS, language="xx")
+
+
+def test_turkish_comment_uses_turkish_headings() -> None:
+    md = render_comment(brief(), STATS, language="tr")
+    assert md.startswith(MARKER)
+    assert "## PR Özeti" in md
+    assert "### Önerilen commit mesajı" in md
+    assert "### Riskler" in md
+    assert "Suggested commit message" not in md
 
 
 def test_failure_comment_is_neutral_and_keeps_the_marker() -> None:
