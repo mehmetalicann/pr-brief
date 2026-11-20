@@ -10,7 +10,8 @@ move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
 2. **Marketplace publication** (manual, not urgent; the maintainer asked to be reminded and to be walked through `docs/marketplace.md`). Name uniqueness can only be checked in the listing form. Remind before going public.
-3. **Item 1 knowingly left open** (no paid key for now), see above.
+3. **`v1.2.0` is prepared, tag not cut** (usage report, presets, `/pr-brief refresh`). The refresh command still needs its real-runner trial (comment workflows run only from `main`; needs the maintainer's key as a secret); decide whether to tag before or after it. Needs the maintainer to sign the tag.
+4. **Item 1 knowingly left open** (no paid key for now), see above.
 
 ## 2026-11-20 - Phase 7 started: usage report and presets (maintainer picked usage report, presets, `/pr-brief refresh`)
 - Usage report: the job summary now lists the number of provider requests (chunks, reduce step, repairs) and, only when the maintainer sets `price-input-per-million` and `price-output-per-million` (both or neither, 0 to 1,000,000), an estimated cost from those prices; a cache hit shows `$0.0000`. Decision: no built-in price list (prices change and differ per model). Two new optional settings/inputs, tests first.
