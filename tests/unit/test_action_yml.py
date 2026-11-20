@@ -260,3 +260,14 @@ def test_the_release_ships_an_sbom_built_from_the_locked_dependencies() -> None:
     steps = release_workflow()["jobs"]["publish"]["steps"]
     text = "\n".join(s.get("run", "") for s in steps)
     assert "scripts/sbom.py" in text and "sbom.cdx.json" in text
+
+
+def test_release_verification_does_not_fetch_without_credentials() -> None:
+    """Checkout runs with persist-credentials: false, so a later `git fetch` fails on private repos.
+
+    `fetch-depth: 0` already brings every branch (including origin/main) and every tag.
+    """
+    steps = release_workflow()["jobs"]["verify"]["steps"]
+    checkout = next(s for s in steps if s.get("uses", "").startswith("actions/checkout"))
+    assert checkout["with"]["fetch-depth"] == 0
+    assert all("git fetch" not in s.get("run", "") for s in steps)
