@@ -10,7 +10,7 @@ move it to the log below with the date.
 
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
 2. **Marketplace publication** (manual, not urgent; the maintainer asked to be reminded and to be walked through `docs/marketplace.md`). Name uniqueness can only be checked in the listing form. Remind before going public.
-3. **`v1.2.0` is prepared, tag not cut** (usage report, presets, `/pr-brief refresh`). The refresh trial passed. Needs the maintainer to sign the tag.
+3. **Public-repository settings** (ruleset for `main`, ruleset for `v*.*.*` tags, private vulnerability reporting, secret scanning and push protection, fork PR approval, Dependabot alerts): not possible on the private free plan; run `docs/going-public.md` section 3 right before the visibility switch and verify each in *Settings*.
 4. **Item 1 knowingly left open** (no paid key for now), see above.
 
 ## 2026-11-22 - Review fixes committed, Dependabot PRs merged, SHA pinning enforced
@@ -18,7 +18,8 @@ move it to the log below with the date.
 - Dependabot PRs #6 and #7 (`codeql-action` 4.39.1 to 4.39.3) squash-merged; the new SHA was checked against the `v4.39.3` tag before merging. CI on `main` green.
 - Repository setting `sha_pinning_required` switched on (private repo; all `uses:` are SHA-pinned, only `./` local uses remain). CI stayed green afterwards.
 - Pre-flight for going public re-checked: only noreply author addresses, no personal paths or e-mail in files, gitleaks clean, `v1` and `v1.0.0` tags on the remote. Branch protection and rulesets are still missing (not available on the private free plan); set them from `docs/going-public.md` before the visibility switch.
-- Still open: signed tag `v1.2.0` (maintainer), Marketplace walk-through, public-repository settings, optional live OpenAI/Anthropic check, Phase 7 leftovers.
+- **`v1.2.0` released with a signed tag** (cut by the maintainer on `a38610b`): `release.yml` passed (`verify`, `publish`), the release (not draft) carries `sbom.cdx.json`, `v1` moved to the same commit, GitHub reports the tag as verified (`reason: valid`). Open item 3 (tag not cut) is closed.
+- Still open: Marketplace walk-through, public-repository settings, optional live OpenAI/Anthropic check, Phase 7 leftovers.
 
 ## 2026-11-20 - WHERE WE STOPPED (superseded by the 2026-11-22 entry above for items 1 and Dependabot)
 - **Uncommitted work on `main`** (HEAD `4fc95af`, pushed): the security review fixes and docs of the entry below (redaction patterns, sanitiser clip, backtracking-free glob matcher, nesting errors, COLLABORATOR wording, CHANGELOG `[1.2.0]` Security section, `docs/security-model.md`, this log). `just check` passed with all of it (856 tests, coverage 98.4%, release gate for `v1.2.0` OK). It waits for the maintainer's "commit and push".
