@@ -52,7 +52,10 @@ the map-reduce paths, and not even the chunker, ever sees a masked value.
   on diff lines. The text is the sanitised risk text, never the model's quote. The line number comes
   from the parsed diff, not from the model, and a comment is dropped when the quote is short,
   missing or ambiguous. Deleting is limited to comments that carry the pr-brief marker and were
-  written by `github-actions[bot]`. See [inline-comments.md](inline-comments.md) and ADR 8.
+  written by `github-actions[bot]`. The quote is taken from the already redacted diff and is
+  clipped; with the cache on, it is stored with the brief (masked, validated and re-sanitised on
+  read like the rest) in the runner's Actions cache, never in a comment or a log. See
+  [inline-comments.md](inline-comments.md) and ADR 8.
 - **Redaction is best effort.** Unknown token formats, secrets split across lines, or secrets
   embedded in prose can pass. High-entropy detection trades false negatives for fewer false
   positives; if code must never reach a third party, use a self-hosted model or do not enable the
