@@ -17,7 +17,7 @@ pr-brief talks to models over plain HTTP (`httpx`); there are no vendor SDKs. Pi
 |------------|----------------------------------|
 | `ollama` | Yes (local, `llama3.2`; `just live`). |
 | `gemini` | Yes (`gemini-3.5-flash-lite`; `just live`, and the README quick start on a real runner). |
-| `openai-compatible` | No, mock-only: shapes follow the vendor's documentation and were not called live. |
+| `openai-compatible` | Mock-tested, and run once against Ollama's `/v1` endpoint (`qwen2.5:7b`); not yet called against OpenAI itself. |
 | `anthropic` | No, mock-only: shapes follow the vendor's documentation and were not called live. |
 
 Everything else in this file (retries, size caps, key handling) is covered by the shared contract

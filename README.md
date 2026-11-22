@@ -1,21 +1,21 @@
 # pr-brief
 
-A GitHub Action that writes (and keeps up to date) **one** comment on each pull request:
-a short summary, a suggested Conventional Commits message, and a risk/review checklist.
+A GitHub Action that writes **one** comment on every pull request and keeps it up to date: a short
+summary, a suggested [Conventional Commits](https://www.conventionalcommits.org/) message, and a
+risk and review checklist.
 
-## Why
-
-Reviewers open a pull request and have to rebuild the picture from the diff. pr-brief gives them
-that picture up front, in the same place every time, without a second bot comment on every push. It
-works with the model you choose, including free and self-hosted ones, and it is built to fail
-quietly: if anything goes wrong your pipeline stays green and the reason is in the job log.
+- **One comment, edited in place.** No new bot comment on every push.
+- **Your model.** Gemini, Anthropic, any OpenAI-compatible API, or a local Ollama.
+- **Safe by default.** It reads the diff through the GitHub API and never checks out or runs the
+  pull request's code. Secrets are masked before anything is sent to the model.
+- **Never breaks your CI.** If something goes wrong the job stays green and the log says why.
 
 ## Quick start
 
-1. Get an API key from a provider (for example a free key from
-   [Google AI Studio](https://aistudio.google.com/)), or run [Ollama](docs/troubleshooting.md#self-hosted-runners-with-ollama).
-2. In your repository: **Settings, Secrets and variables, Actions, New repository secret**. Name it
-   `LLM_API_KEY` and paste the key.
+1. Get an API key, for example a free one from [Google AI Studio](https://aistudio.google.com/),
+   or run [Ollama](docs/troubleshooting.md#self-hosted-runners-with-ollama).
+2. Add it as a repository secret named `LLM_API_KEY`
+   (**Settings, Secrets and variables, Actions**).
 3. Create `.github/workflows/pr-brief.yml`:
 
 ```yaml
@@ -40,28 +40,22 @@ jobs:
           api-key: ${{ secrets.LLM_API_KEY }}
 ```
 
-4. Open a pull request. When the job finishes there is one comment, edited in place on every push.
+4. Open a pull request. When the job finishes there is one comment.
 
-Optional: maintainers can ask for a new brief with a `/pr-brief refresh` comment, see
-[`docs/refresh.md`](docs/refresh.md).
+No `actions/checkout` step is needed. To look at the result before anything is posted, add
+`dry-run: true`: the comment then appears in the job log and summary. Model names change over time;
+use one your provider currently lists.
 
-No `actions/checkout` step is needed. To see the result first without posting anything, add
-`dry-run: true`: the comment then appears in the job log and the job summary. Model names change
-over time; use one that your provider currently lists.
+**Pinning.** `@v1` follows the newest 1.x release. For a stricter setup pin a full commit SHA
+(40 characters) instead (a tag can be moved, a SHA cannot) and keep the version as a comment
+(`# v1.3.0`). The SHA of each release is on the Releases page. Dependabot can keep it up to date.
 
-**Pinning.** `@v1` follows the newest 1.x release. For a stricter setup, pin the action to a full
-commit SHA instead, because a tag can be moved and a SHA cannot: write `@` followed by the
-40-character SHA of a release and keep the version as a comment (`# v1.0.0`). The SHA of each
-release is on the Releases page, or run `git ls-remote https://github.com/mehmetalicann/pr-brief
-refs/tags/v1.0.0`. Dependabot can keep a pinned SHA up to date.
-
-### What the comment looks like
+## What the comment looks like
 
 ![A pull request gets one PR Brief comment, and a new push edits that same comment](docs/assets/demo.gif)
 
-An illustration, not a screen recording: the page is drawn, the comment is produced by this
-project's real renderer, and the model's answer is canned. Regenerate it with
-`python scripts/make_demo_gif.py` ([how](scripts/make_demo_gif.md)). The text version:
+The animation is an illustration (the answer is canned); the comment is made by the project's real
+renderer. In text form:
 
 ````markdown
 ## PR Brief
@@ -88,13 +82,20 @@ fix(greet): reject empty names
 </details>
 ````
 
-An illustration, not real output. The real comment also has collapsible sections for missing tests
-and run details (files analysed or skipped, tokens, model, cache).
+The real comment also has collapsible sections for missing tests and run details (files, tokens,
+model, cache).
+
+## Optional features
+
+- **Inline comments** (`inline-comments: true`): up to 5 review comments on the exact diff lines
+  that medium and high risks are about. See [`docs/inline-comments.md`](docs/inline-comments.md).
+- **Refresh on demand:** maintainers can comment `/pr-brief refresh` for a new brief. See
+  [`docs/refresh.md`](docs/refresh.md).
 
 ## Configuration
 
-Set them as action inputs (`with:`) or in a `.pr-brief.yml` in your repository, which is read from
-the base branch so a pull request cannot change its own settings. A fully commented example is in
+Set options as action inputs (`with:`) or in a `.pr-brief.yml`, which is read from the base branch
+so a pull request cannot change its own settings. A commented example is in
 [`.pr-brief.example.yml`](.pr-brief.example.yml); every value is explained in
 [`docs/configuration.md`](docs/configuration.md).
 
@@ -110,8 +111,8 @@ the base branch so a pull request cannot change its own settings. A fully commen
 | `max-output-tokens` | `900` | Token budget for the answer |
 | `ignore` | none | Extra globs to skip, one per line |
 | `include-drafts` | `false` | Also process draft PRs |
-| `skip-bots` | `true` | Skip PRs opened by bots such as Dependabot (set `false` to process them) |
-| `inline-comments` | `false` | Also post up to 5 review comments on the diff lines that medium and high risks are about ([how it works](docs/inline-comments.md)) |
+| `skip-bots` | `true` | Skip PRs opened by bots such as Dependabot |
+| `inline-comments` | `false` | Also post up to 5 review comments on diff lines ([how it works](docs/inline-comments.md)) |
 | `allow-fork-target` | `false` | Also process fork PRs under `pull_request_target` (unsafe, read the [security model](docs/security-model.md)) |
 | `dry-run` | `false` | Print instead of posting |
 | `fail-on-error` | `false` | Fail the job on errors (default: stay green) |
@@ -123,73 +124,49 @@ the base branch so a pull request cannot change its own settings. A fully commen
 
 ### Verification status
 
-Which provider adapters were checked against the real service, and which only against mocks of the
-vendor's documented API:
+| `provider` | Status |
+|------------|--------|
+| `ollama` | Checked (local, `llama3.2`). |
+| `gemini` | Checked (`gemini-3.5-flash-lite`, also through this quick start on a real runner). |
+| `openai-compatible` | Mock-tested, and run once against Ollama's `/v1` endpoint (`qwen2.5:7b`); not yet called against OpenAI itself. |
+| `anthropic` | Mock-only: it follows the vendor's documentation but was not called live yet. |
 
-| `provider` | Checked against the real service |
-|------------|----------------------------------|
-| `ollama` | Yes (local, `llama3.2`). |
-| `gemini` | Yes (`gemini-3.5-flash-lite`, also through the README quick start on a real runner). |
-| `openai-compatible` | No, mock-only: request and response shapes follow the vendor's documentation but were not called live yet. |
-| `anthropic` | No, mock-only: request and response shapes follow the vendor's documentation but were not called live yet. |
-
-If one of the mock-only adapters misbehaves, the job stays green and the log says why; please
+If an adapter misbehaves, the job stays green and the log says why; please
 [open an issue](https://github.com/mehmetalicann/pr-brief/issues).
-
-## Design goals
-
-- **Safe by default.** Runs on `pull_request` (never `pull_request_target`), never checks out or
-  executes the PR's code, and skips gracefully on fork PRs that have no secrets.
-- **Provider-independent.** One interface for Ollama, OpenAI-compatible APIs, Gemini and Anthropic,
-  with plain HTTP and a very small dependency set (`httpx`, `pydantic`, `pyyaml`);
-  see [`docs/providers.md`](docs/providers.md).
-- **Cheap.** Token budgets, file filtering, map-reduce chunking and caching.
-- **Never breaks your CI.** Errors produce a neutral message; the job only fails if you opt in.
-
-How the pieces fit together: [`docs/architecture.md`](docs/architecture.md).
 
 ## Data and privacy
 
-The diff of a pull request is sent to **the LLM provider you configure**. The project's intent is to
-mask secrets and personal data before anything leaves the runner, but redaction is best effort and
-cannot guarantee that nothing sensitive is sent. If your code must not reach a third party, use a
-self-hosted model (for example Ollama) or do not enable the action on that repository.
-Redaction, prompt hardening and output sanitising are implemented and tested; the layers and their
-limits are described in [`docs/security-model.md`](docs/security-model.md).
-
-**Free tiers.** Some providers may use data sent through their free tier to improve their models.
-Google AI Studio's free tier is one example. Check your provider's current terms, and use a paid or
-self-hosted model for private code.
+The diff is sent to **the LLM provider you configure**. Secrets and personal data are masked first,
+but masking is best effort and cannot guarantee that nothing sensitive is sent. If your code must
+not reach a third party, use a self-hosted model such as Ollama or do not enable the action on that
+repository. Some providers may use data sent through a free tier to improve their models (Google AI
+Studio's free tier is one example), so check their terms and use a paid or self-hosted model for
+private code. The layers and their limits are in [`docs/security-model.md`](docs/security-model.md).
 
 ## FAQ
 
 **Does it run my pull request's code?** No. It reads the diff and the PR text through the GitHub
-API. It never checks out or executes the PR.
+API.
 
-**What does it cost?** The action is free. You pay your provider for tokens, if at all. The token
-budgets, file filtering and cache keep this small; Ollama and free tiers cost nothing.
+**What does it cost?** The action is free. You pay your provider for tokens, if at all; Ollama and
+free tiers cost nothing. Token budgets, file filtering and the cache keep usage small.
 
-**Why is there no comment on a fork PR?** GitHub gives fork PRs no secrets and a read-only token
-under `pull_request`, so the action skips them with a note in the job summary. See
+**Why is there no comment on a fork PR?** GitHub gives fork PRs no secrets under `pull_request`, so
+the action skips them with a note in the job summary. See
 [troubleshooting](docs/troubleshooting.md).
 
-**Can I try it without posting?** Yes: `dry-run: true`, or locally `just run-local` (mock provider,
-no network).
+**Can I skip some files?** Lockfiles, build output, generated files and images are skipped by
+default. Add more with `ignore`.
 
-**Can I skip some files?** Lockfiles, build output, generated files, images and the like are
-skipped by default. Add more with `ignore`.
-
-**Which languages does it write in?** English and Turkish (`language: en` or `tr`). More are one
-small dictionary away: [`docs/architecture.md`](docs/architecture.md).
-
-**Something failed.** The job stays green and the log tells you why, with a fix. The common cases
-are in [`docs/troubleshooting.md`](docs/troubleshooting.md).
+**Something failed.** The job stays green and the log gives the reason and a fix. Common cases:
+[`docs/troubleshooting.md`](docs/troubleshooting.md). How the pieces fit together:
+[`docs/architecture.md`](docs/architecture.md).
 
 ## Türkçe
 
 pr-brief, her pull request için **tek bir** yorum yazan ve her push'ta aynı yorumu güncelleyen bir
-GitHub Action'dır: kısa özet, Conventional Commits biçiminde commit mesajı önerisi ve risk/inceleme
-kontrol listesi.
+GitHub Action'dır: kısa özet, Conventional Commits biçiminde commit mesajı önerisi ve risk ve
+inceleme kontrol listesi.
 
 Hızlı başlangıç için yukarıdaki iş akışını kullanın ve `language: tr` ekleyin. Başlıklar ve model
 metni Türkçe olur. Yapılandırma, sorun giderme ve güvenlik belgeleri İngilizcedir.
@@ -198,25 +175,25 @@ metni Türkçe olur. Yapılandırma, sorun giderme ve güvenlik belgeleri İngil
 - Diff, seçtiğiniz LLM sağlayıcısına gönderilir. Gizli bilgiler önce maskelenir, ama maskeleme tam
   garanti vermez. Kodunuz üçüncü tarafa gitmemeliyse Ollama gibi kendi barındırdığınız bir model
   kullanın. Bazı sağlayıcıların ücretsiz katmanı verileri model geliştirmek için kullanabilir.
-- Sorun olursa iş yeşil kalır, sebebi iş günlüğünde ve özetinde yazar
-  (`fail-on-error: true` ile işi başarısız yapabilirsiniz).
+- Sorun olursa iş yeşil kalır, sebebi iş günlüğünde yazar (`fail-on-error: true` ile işi başarısız
+  yapabilirsiniz).
 - Önce denemek için `dry-run: true` kullanın: yorum yayınlanmaz, iş günlüğünde görünür.
 
 ## Security
 
-Report vulnerabilities privately, as described in [`SECURITY.md`](SECURITY.md). Do not open public
-issues for security problems.
+Report vulnerabilities privately, as described in [`SECURITY.md`](SECURITY.md). Please do not open
+public issues for security problems.
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"   # or: just setup
-just check                # lint + types + tests/coverage + security scans
+just check                # lint, types, tests with coverage, security scans
 just run-local            # offline run on a fixture diff with the mock provider
 ```
 
-Tasks are defined in the `justfile` (`just --list`). See [`CONTRIBUTING.md`](CONTRIBUTING.md);
-how a release is cut: [`docs/releasing.md`](docs/releasing.md).
+Tasks are in the `justfile` (`just --list`). See [`CONTRIBUTING.md`](CONTRIBUTING.md); how a
+release is cut: [`docs/releasing.md`](docs/releasing.md).
 
 ## License
 
