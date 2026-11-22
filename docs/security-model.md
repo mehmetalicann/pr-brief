@@ -48,6 +48,11 @@ the map-reduce paths, and not even the chunker, ever sees a masked value.
   requests are skipped like under `pull_request_target`; the check is made in the workflow filter
   and again in the action. See [refresh.md](refresh.md) and ADR 7.
 
+- **`inline-comments` (opt-in)** adds a second write: one `COMMENT` review with at most 5 comments
+  on diff lines. The text is the sanitised risk text, never the model's quote. The line number comes
+  from the parsed diff, not from the model, and a comment is dropped when the quote is short,
+  missing or ambiguous. Deleting is limited to comments that carry the pr-brief marker and were
+  written by `github-actions[bot]`. See [inline-comments.md](inline-comments.md) and ADR 8.
 - **Redaction is best effort.** Unknown token formats, secrets split across lines, or secrets
   embedded in prose can pass. High-entropy detection trades false negatives for fewer false
   positives; if code must never reach a third party, use a self-hosted model or do not enable the

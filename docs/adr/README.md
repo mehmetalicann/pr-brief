@@ -13,3 +13,5 @@ Consequences. Add a new file (next number) instead of editing an accepted one; m
 | [5](0005-one-comment-upserted-by-marker-and-author.md) | One comment, found by marker and author |
 | [6](0006-tag-driven-gated-releases.md) | Tag-driven, gated releases with a moving major tag |
 | [7](0007-refresh-command-by-comment.md) | `/pr-brief refresh` comment command, opt-in, maintainers only |
+| [8](0008-inline-review-comments.md) | Inline review comments: opt-in, anchored by quote, synchronised by marker |
+| [9](0009-no-plugin-entry-points.md) | No plugin entry-points for custom providers |
