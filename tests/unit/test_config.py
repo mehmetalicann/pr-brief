@@ -267,3 +267,9 @@ def test_prices_must_be_sane_numbers(tmp_path: Path, bad: str) -> None:
     }
     with pytest.raises(ConfigError):
         load_settings(env, base_dir=tmp_path)
+
+
+def test_deeply_nested_yaml_is_a_config_error_not_a_crash(tmp_path: Path) -> None:
+    write(tmp_path, "provider: mock\nx: " + "[" * 5000 + "]" * 5000 + "\n")
+    with pytest.raises(ConfigError, match="YAML"):
+        load_settings({}, base_dir=tmp_path)

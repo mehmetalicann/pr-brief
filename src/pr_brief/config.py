@@ -137,7 +137,7 @@ def _read_file(
         raise ConfigError(f"Config file {config_path} is too large (limit 64 KiB).")
     try:
         data = yaml.safe_load(text)
-    except yaml.YAMLError:
+    except (yaml.YAMLError, RecursionError):
         raise ConfigError(
             f"Config file {config_path} is not valid YAML.",
             hint="validate it with a YAML linter.",

@@ -14,7 +14,9 @@ from pr_brief.github.client import check_repo
 PULL_REQUEST_EVENTS = frozenset({"pull_request", "pull_request_target"})
 COMMENT_EVENT = "issue_comment"
 REFRESH_COMMAND = "/pr-brief refresh"
-# Who may run the command: people with write access. Anyone else could spend the maintainer's
+# Who may run the command: the repository's owner, organisation members and invited collaborators.
+# GitHub's association does not say which permission level that is (an invited collaborator can be
+# read-only), so the maintainer decides whom to invite. Anyone else could spend the maintainer's
 # API budget with a comment.
 REFRESH_ASSOCIATIONS = frozenset({"OWNER", "MEMBER", "COLLABORATOR"})
 RUN_ACTIONS = frozenset({"opened", "synchronize", "reopened", "ready_for_review"})

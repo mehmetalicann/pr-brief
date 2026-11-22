@@ -21,7 +21,12 @@ _KEYWORDS = (
     r"(?:password|passwd|pwd|secret|token|api[_-]?key|apikey|access[_-]?key|private[_-]?key"
     r"|client[_-]?secret|auth[_-]?key|credentials?)"
 )
-_ASSIGN_HEAD = rf"(?i:\b[\w.-]*{_KEYWORDS}[\w.-]*)[\"']?\s*[:=]\s*"
+# Every quantifier that can be retried at many start positions is bounded: a pull request author
+# controls the text, and an unbounded `[\w.-]*` before a keyword (or a lookahead that scans to the
+# end of a long run) made redaction quadratic. Only the value group is ever replaced, so the head
+# needs no prefix: "DB_PASSWORD=..." still matches at "PASSWORD".
+_ASSIGN_HEAD = rf"(?i:{_KEYWORDS}[\w.-]{{0,40}})[\"']?\s*[:=]\s*"
+_LOOKAHEAD_SPAN = 256  # how far the value rule looks for a digit and a letter
 
 # Order matters: specific token shapes first, generic assignments, then PII, entropy last.
 RULES: tuple[Rule, ...] = (
@@ -42,7 +47,11 @@ RULES: tuple[Rule, ...] = (
     ),
     Rule("jwt", _c(r"\beyJ[A-Za-z0-9_-]{5,}\.eyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}")),
     Rule("bearer-token", _c(r"(?i)\bbearer\s+([A-Za-z0-9._~+/=-]{16,})"), 1),
-    Rule("url-credentials", _c(r"(?i)\b[a-z][a-z0-9+.-]*://[^\s:/@]+:([^\s@/]{3,})@"), 1),
+    Rule(
+        "url-credentials",
+        _c(r"(?i)\b[a-z][a-z0-9+.-]{0,30}://[^\s:/@]{1,256}:([^\s@/]{3,256})@"),
+        1,
+    ),
     Rule(
         "assignment",
         _c(_ASSIGN_HEAD + r"([\"'])(?P<value>[^\"'\s]{6,})\1"),
@@ -52,12 +61,15 @@ RULES: tuple[Rule, ...] = (
         "assignment",
         _c(
             _ASSIGN_HEAD
-            + r"(?P<value>(?=[A-Za-z0-9+/_=-]*\d)(?=[A-Za-z0-9+/_=-]*[A-Za-z])"
+            + rf"(?P<value>(?=[A-Za-z0-9+/_=-]{{0,{_LOOKAHEAD_SPAN}}}\d)"
+            + rf"(?=[A-Za-z0-9+/_=-]{{0,{_LOOKAHEAD_SPAN}}}[A-Za-z])"
             + r"[A-Za-z0-9+/_=-]{12,})"
         ),
         "value",
     ),
-    Rule("email", _c(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+\b")),
+    Rule(
+        "email", _c(r"\b[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9-]{1,63}){1,10}\b")
+    ),
     Rule(
         "private-ip",
         _c(

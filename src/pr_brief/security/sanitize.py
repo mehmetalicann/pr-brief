@@ -70,6 +70,10 @@ def sanitize_inline(text: str, *, repo: str | None, max_len: int) -> str:
     """Flatten to a single safe line of Markdown (list items, summaries, risk notes)."""
     text = _neutralize_markers(strip_hidden(text))
     text = " ".join(text.split())
+    # Clip before the regexes: model text is attacker-influenced and not every schema field is
+    # capped, while the link patterns are quadratic on long runs of brackets. The slack keeps the
+    # visible part intact when defusing shortens the text; `_clip` below makes the final cut.
+    text = text[: max(max_len * 3, 200)]
     text = _LEADING_BLOCK_RE.sub("", text)
     text = "".join(seg if is_code else _defuse(seg, repo) for is_code, seg in _split_spans(text))
     return _clip(text, max_len)

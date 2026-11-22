@@ -60,6 +60,11 @@ def extract_json(text: str) -> object:
         body = m.group(1).strip()
     try:
         return json.loads(body)
+    except RecursionError as exc:  # absurdly nested output, e.g. 100000 opening brackets
+        raise SchemaError(
+            "Model output is nested too deeply to be valid.",
+            hint="the model will be asked once to repair its output.",
+        ) from exc
     except json.JSONDecodeError as exc:
         raise SchemaError(
             f"Model output is not valid JSON ({exc.msg} at position {exc.pos}).",

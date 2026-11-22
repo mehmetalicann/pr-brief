@@ -275,3 +275,21 @@ def test_references_inside_code_spans_are_not_double_wrapped() -> None:
 
 def test_a_path_that_looks_like_a_reference_is_not_touched() -> None:
     assert inline("edit src/app#section in docs/a/b") == "edit src/app#section in docs/a/b"
+
+
+@pytest.mark.parametrize("unit", ["[", "[a](", "![", "[a][", "[a]: ", "`[", "a@b."])
+def test_hostile_model_output_cannot_make_the_sanitiser_slow(unit: str) -> None:
+    """Model text is attacker-influenced (prompt injection) and the schema does not cap every
+    field, so the clip must come before the regexes. `"[a](" * 40000` once took three minutes."""
+    import time
+
+    started = time.perf_counter()
+    out = sanitize_inline(unit * 6_000, repo=REPO, max_len=300)
+    assert time.perf_counter() - started < 1.0, unit
+    assert len(out) <= 300
+
+
+def test_clipping_first_keeps_the_visible_text_and_still_removes_links() -> None:
+    text = "Fixes the bug. " + "[docs](https://evil.example/x) " * 200
+    out = sanitize_inline(text, repo=REPO, max_len=120)
+    assert out.startswith("Fixes the bug.") and "evil.example" not in out and "](" not in out

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -95,32 +95,98 @@ def matches_glob(path: str, pattern: str) -> bool:
     - ``name/``: a directory called ``name`` at any depth.
     - no ``/`` in the pattern: matches the basename at any depth.
     - otherwise anchored to the full path; ``**`` crosses directories, ``*`` and ``?`` do not.
+
+    Patterns with at most three unbounded wildcards are matched by a regex (fast, at worst
+    quadratic). Anything with more is matched by sweeping the path once per token (no
+    backtracking, O(tokens x path length)), so a hostile pattern such as ``*a*a*a*a*b`` cannot make
+    matching slow either.
     """
-    return _compile(pattern).match(path) is not None
+    return _matcher(pattern)(path)
 
 
 @lru_cache(maxsize=512)
-def _compile(pattern: str) -> re.Pattern[str]:
+def _matcher(pattern: str) -> Callable[[str], bool]:
+    tokens = _tokens(pattern)
+    if sum(kind in (_STAR, _ANY, _DIRS) for kind, _ in tokens) <= _MAX_REGEX_WILDCARDS:
+        regex = re.compile(_to_regex(tokens) + r"\Z")
+        return lambda text: regex.match(text) is not None
+    return lambda text: _match(tokens, text)
+
+
+_MAX_REGEX_WILDCARDS = 3  # "**/*x*" is three: the implicit "**/", then two stars
+
+
+_LIT, _ONE, _STAR, _ANY, _DIRS = "lit", "one", "star", "any", "dirs"
+
+
+@lru_cache(maxsize=512)
+def _tokens(pattern: str) -> tuple[tuple[str, str], ...]:
     if pattern.endswith("/"):
         pattern = f"**/{pattern.rstrip('/')}/**"
     elif "/" not in pattern:
         pattern = f"**/{pattern}"
-    out: list[str] = []
+    out: list[tuple[str, str]] = []
     i = 0
     while i < len(pattern):
         if pattern.startswith("**/", i):
-            out.append("(?:.*/)?")
+            out.append((_DIRS, ""))  # zero or more leading directories
             i += 3
         elif pattern.startswith("**", i):
-            out.append(".*")
+            out.append((_ANY, ""))  # anything, slashes included
             i += 2
         elif pattern[i] == "*":
-            out.append("[^/]*")
+            out.append((_STAR, ""))  # anything except a slash
             i += 1
         elif pattern[i] == "?":
-            out.append("[^/]")
+            out.append((_ONE, ""))  # one character except a slash
             i += 1
         else:
-            out.append(re.escape(pattern[i]))
+            out.append((_LIT, pattern[i]))
             i += 1
-    return re.compile("".join(out) + r"\Z")
+    return tuple(out)
+
+
+_REGEX_PART = {_ONE: "[^/]", _STAR: "[^/]*", _ANY: ".*", _DIRS: "(?:.*/)?"}
+
+
+def _to_regex(tokens: tuple[tuple[str, str], ...]) -> str:
+    return "".join(re.escape(char) if kind == _LIT else _REGEX_PART[kind] for kind, char in tokens)
+
+
+def _match(tokens: tuple[tuple[str, str], ...], text: str) -> bool:
+    n = len(text)
+    cur = [False] * (n + 1)  # cur[j]: the tokens so far can end exactly at position j
+    cur[0] = True
+    for kind, char in tokens:
+        nxt = [False] * (n + 1)
+        if kind == _LIT:
+            for j in range(n):
+                if cur[j] and text[j] == char:
+                    nxt[j + 1] = True
+        elif kind == _ONE:
+            for j in range(n):
+                if cur[j] and text[j] != "/":
+                    nxt[j + 1] = True
+        elif kind == _STAR:
+            reach = False
+            for j in range(n + 1):
+                reach = reach or cur[j]
+                nxt[j] = reach
+                if j < n and text[j] == "/":
+                    reach = False
+        elif kind == _ANY:  # regex `.*`: any character except a newline
+            reach = False
+            for j in range(n + 1):
+                reach = reach or cur[j]
+                nxt[j] = reach
+                if j < n and text[j] == "\n":
+                    reach = False
+        else:  # _DIRS, regex `(?:.*/)?`
+            seen = False  # some earlier position could start the `.*/` part
+            for j in range(n + 1):
+                nxt[j] = cur[j] or (seen and text[j - 1] == "/")
+                seen = seen or cur[j]
+                if j < n and text[j] == "\n":
+                    seen = False
+        cur = nxt
+    return cur[n]

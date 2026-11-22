@@ -84,3 +84,9 @@ def test_json_schema_is_available_for_providers() -> None:
     schema = BriefOutput.model_json_schema()
     assert schema["title"] == "BriefOutput"
     assert "commit_message" in schema["properties"]
+
+
+@pytest.mark.parametrize("text", ["[" * 100_000, '{"a":' * 50_000, "[[" * 40_000 + "]]" * 40_000])
+def test_deeply_nested_model_output_is_a_schema_error_not_a_crash(text: str) -> None:
+    with pytest.raises(SchemaError):
+        parse_model(BriefOutput, text)

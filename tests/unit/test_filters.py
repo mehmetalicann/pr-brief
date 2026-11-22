@@ -1,3 +1,6 @@
+import random
+import re
+import time
 from collections.abc import Callable
 
 import pytest
@@ -132,3 +135,58 @@ def test_lookalike_names_are_not_sensitive() -> None:
     names = ["src/environment.py", "docs/keyboard.md", "src/monkey.py", "src/envelope.py"]
     result = filter_files([file(n) for n in names], ignore=[])
     assert len(result.kept) == 4
+
+
+def _reference_regex(pattern: str) -> "re.Pattern[str]":
+    """The original regex translation, kept as the oracle for the backtracking-free matcher."""
+    if pattern.endswith("/"):
+        pattern = f"**/{pattern.rstrip('/')}/**"
+    elif "/" not in pattern:
+        pattern = f"**/{pattern}"
+    out: list[str] = []
+    i = 0
+    while i < len(pattern):
+        if pattern.startswith("**/", i):
+            out.append("(?:.*/)?")
+            i += 3
+        elif pattern.startswith("**", i):
+            out.append(".*")
+            i += 2
+        elif pattern[i] == "*":
+            out.append("[^/]*")
+            i += 1
+        elif pattern[i] == "?":
+            out.append("[^/]")
+            i += 1
+        else:
+            out.append(re.escape(pattern[i]))
+            i += 1
+    return re.compile("".join(out) + r"\Z")
+
+
+def test_matcher_agrees_with_the_original_regex_on_random_inputs() -> None:
+    rng = random.Random(1234)  # noqa: S311  (test data, not cryptography)
+    pattern_chars = "ab/*?.*"
+    path_chars = "ab/.\n"
+    for _ in range(6000):
+        pattern = "".join(rng.choice(pattern_chars) for _ in range(rng.randint(1, 9)))
+        path = "".join(rng.choice(path_chars) for _ in range(rng.randint(0, 12)))
+        expected = _reference_regex(pattern).match(path) is not None
+        assert matches_glob(path, pattern) is expected, (pattern, path)
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        "*a*a*a*a*a*a*a*a*a*a*a*a*b",
+        "**/**/**/**/**/**/**/**/x",
+        "a**a**a**a**a**a**a**a**b",
+        "?*?*?*?*?*?*?*?*?*?*?*?*b",
+    ],
+)
+def test_hostile_patterns_cannot_make_matching_slow(pattern: str) -> None:
+    """Patterns come from the base branch, paths from the pull request: neither may blow up."""
+    path = "a/" * 150 + "a" * 600
+    started = time.perf_counter()
+    matches_glob(path, pattern)
+    assert time.perf_counter() - started < 1.0, pattern

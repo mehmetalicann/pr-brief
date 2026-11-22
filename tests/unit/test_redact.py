@@ -136,6 +136,53 @@ def test_empty_and_whitespace_input() -> None:
     assert redact("\n\n").count == 0
 
 
+@pytest.mark.parametrize(
+    "unit",
+    [
+        "a.",
+        "a-",
+        "a+",
+        "a%",
+        "password=",
+        "api_key=",
+        "token=",
+        "secret=",
+        "x.password:",
+        "http://",
+        "u:p@",
+        "a.b.c-d_e",
+        "eyJa.eyJa.",
+        "bearer a",
+    ],
+)
+def test_redaction_time_grows_linearly_with_hostile_input(unit: str) -> None:
+    """A pull request author controls the diff: no input shape may make the scan quadratic.
+
+    Found with `"a." * 16000` (32 KB took over a minute). Linear code needs a few milliseconds
+    here; the generous bound only separates linear from quadratic.
+    """
+    import time
+
+    text = unit * 12_000
+    started = time.perf_counter()
+    redact(text)
+    assert time.perf_counter() - started < 1.5, unit
+
+
+def test_long_variable_names_and_values_are_still_redacted() -> None:
+    long_prefix = "my_very_long_service_name_" * 3
+    first = f"{long_prefix}PASSWORD=hunter2xyz99abc"  # gitleaks:allow (fake test value)
+    second = f"cfg.{long_prefix}secret_key: hunter2xyz99abc"  # gitleaks:allow (fake test value)
+    assert "hunter2xyz99" not in redact(first).text
+    assert "hunter2xyz99" not in redact(second).text
+    value = "abcdefgh12345678" * 8  # 128 characters
+    line = f"api_key={value}"  # gitleaks:allow (fake test value)
+    assert value not in redact(line).text
+    assert "local@example.com" not in redact("mail: local@example.com").text
+    long_email = "x" * 40 + "@example.com"
+    assert long_email not in redact(long_email).text
+
+
 def test_single_line_json_private_key_is_masked() -> None:
     # A JSON string: the newlines are the two characters backslash + n, not real line breaks.
     line = '{"private_key": "' + PK_BEGIN + "\\nMIIEvQ\\n" + PK_END + '\\n"}'
