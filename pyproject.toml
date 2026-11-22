@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pr-brief"
-version = "1.2.0"
+version = "1.3.0"
 description = "GitHub Action that writes one concise, safe, always-up-to-date PR brief comment."
 readme = "README.md"
 license = { text = "MIT" }

@@ -5,8 +5,10 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-11-22
+
 ### Added
-- `inline-comments` setting and input (opt-in, default `false`): up to 5 review comments on the diff lines that medium and high risks are about. The model quotes a line, the code finds its number; comments are synchronised on every push and only the bot's own marked comments are ever deleted. Briefs split into chunks get none. See `docs/inline-comments.md` and ADR 8.
+- `inline-comments` setting and input (opt-in, default `false`): up to 5 review comments on the diff lines that medium and high risks are about. The model quotes a line, the code finds its number; comments are synchronised on every push and only the bot's own marked comments are ever deleted. Briefs split into chunks get none. Small models may leave the quote empty; then no comment is posted. See `docs/inline-comments.md` and ADR 8.
 - ADR 9: plugin entry-points for custom providers are deliberately not built.
 
 ## [1.2.0] - 2026-11-20
