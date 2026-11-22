@@ -86,7 +86,10 @@ JSON
 gh api -X POST repos/OWNER/REPO/rulesets --input tag-ruleset.json && rm tag-ruleset.json
 ```
 
-Branch protection (a ruleset: no deletion, no force-push, CI must pass):
+Branch protection (a ruleset: no deletion, no force-push, CI must pass). A required status check
+also rejects **direct pushes** (a new commit has no check result yet), so the repository admin role
+(`actor_id` 5) is a bypass actor: the maintainer can still push to `main`, while pull requests from
+anyone else, Dependabot included, must pass `check (3.11)` and `check (3.12)`.
 
 ```bash
 cat > ruleset.json <<'JSON'
@@ -95,6 +98,7 @@ cat > ruleset.json <<'JSON'
   "target": "branch",
   "enforcement": "active",
   "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
+  "bypass_actors": [ { "actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always" } ],
   "rules": [
     { "type": "deletion" },
     { "type": "non_fast_forward" },
