@@ -45,7 +45,9 @@ jobs:
 - Only the exact comment `/pr-brief refresh` counts (surrounding whitespace is ignored). Replies,
   quotes and code spans do not.
 - Only repository **owners, members and collaborators** may run it. Anyone else could spend your
-  API budget with a comment. Comments written by bots, including pr-brief's own, never run it.
+  API budget with a comment. GitHub does not tell the action which permission level a
+  collaborator has (an invited collaborator may be read-only), so only invite people you trust
+  with the budget. Comments written by bots, including pr-brief's own, never run it.
 - Only new comments count (not edits or deletions), and only on pull requests.
 - A refresh skips the result cache, so the model is called again. It still follows `include-drafts`
   and `skip-bots`, and edits the same comment; there is never a second one.

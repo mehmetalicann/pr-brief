@@ -7,6 +7,9 @@ versioning: [SemVer](https://semver.org/).
 
 ## [1.2.0] - 2026-11-20
 
+### Security
+- Denial of service through hostile input, found by probing the code with adversarial text: (1) redaction was quadratic on some inputs (a 32 KB line such as `a.a.a.a...` kept a job busy for over a minute, longer inputs for hours); the patterns are now bounded and linear; (2) the output sanitiser was quadratic on long runs of brackets coming from the model (`[a](` repeated: minutes), so text is clipped before the link patterns run; (3) a crafted `ignore` glob could make path matching exponential; matching no longer backtracks; (4) absurdly nested JSON or YAML ended in an unhandled `RecursionError`, now a normal schema or config error. Each has a regression test.
+
 ### Fixed
 - An HTTP 400 from a provider now also hints at the `api-key` (Gemini answers an invalid key with 400 instead of 401).
 

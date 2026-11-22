@@ -24,6 +24,8 @@ It also competes for `concurrency` groups: a skipped workflow once cancelled a r
   cancel a real one.
 
 ## Consequences
-Contributors without write access cannot trigger paid model calls. The workflow file must be on the
+People who were never invited to the repository cannot trigger paid model calls. GitHub's
+`COLLABORATOR` association does not say which permission an invited person has (it can be
+read-only), so the trust boundary is "people the maintainer invited". The workflow file must be on the
 default branch before the command works. The action rejects ignored comments before any API request,
 so spam comments cost nothing but a short job.

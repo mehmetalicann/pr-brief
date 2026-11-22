@@ -51,7 +51,10 @@ the map-reduce paths, and not even the chunker, ever sees a masked value.
 - **Redaction is best effort.** Unknown token formats, secrets split across lines, or secrets
   embedded in prose can pass. High-entropy detection trades false negatives for fewer false
   positives; if code must never reach a third party, use a self-hosted model or do not enable the
-  action.
+  action. To keep redaction linear on hostile input some patterns are bounded: an assignment value
+  is recognised when a digit and a letter appear within its first 256 characters, the local part of
+  an e-mail address is at most 64 characters, and a variable name keeps at most 40 characters
+  after the keyword (`password_hash_..._x=`). Longer shapes still fall to the high-entropy rule.
 - **False positives exist** (an identifier that looks like a key is masked); the summary then
   mentions `[REDACTED:…]`.
 - **Prompt injection cannot be fully prevented**, only contained: the worst a hostile diff can do
