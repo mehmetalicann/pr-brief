@@ -11,6 +11,11 @@ move it to the log below with the date.
 1. **Phase 3: real vendor endpoints never called** (OpenAI-compatible, Anthropic). The live tests are written (`tests/providers/test_openai_live.py`, `test_anthropic_live.py`, `just live`) but need a paid key from the maintainer; until they pass, the "Verification status" tables keep saying mock-only. Optional.
 2. **Item 1 knowingly left open** (no paid key for now), see above.
 
+## 2026-11-22 - Inline comments tried with a capable local model (sandbox PR #9, closed and cleaned up)
+- `v1.3.0` verified: signed tag (`valid`), `release.yml` green, release with `sbom.cdx.json`, `v1` moved, Marketplace shows v1.3.0 as latest.
+- Downloaded `qwen2.5:7b` (4.7 GB) and ran the full pipeline locally against real GitHub through Ollama's `/v1`. **Finding:** with the first prompt the model quoted lines but dropped `note` (schema error, the repair step failed too). Rewording the inline instruction ("every risk must have level, area, note, path and quote") fixed it: three runs posted 1 to 2 comments each on the right lines (7 and 12 of `sandbox_trial/users.py`, `RIGHT`, review state `COMMENTED`). Still flaky on other fields (`review_checklist` sometimes missing) because Ollama does not enforce required fields; the repair step covers some of that.
+- Not exercised: the bot-author sync (comments came from the maintainer's token, so repeated runs added duplicates, all deleted afterwards) and a hosted runner. Cleaned up: PR #9 closed, branch deleted, comments and scratch files removed.
+
 ## 2026-11-22 - Inline comments tried on real GitHub (sandbox PR #8, closed and cleaned up)
 - Commits `f99d0be` (code, tests) and `0b939d1` (docs) pushed; CI and CodeQL green.
 - Trial run **locally** against the real GitHub API (a hosted runner cannot reach a local Ollama), with Ollama `llama3.2` through `openai-compatible` at `http://localhost:11434/v1`. The summary comment was created. llama3.2 (3B) left `path` and `quote` empty in three probes, so no inline comment was planned: the soft failure works, but this model is too small to quote lines.

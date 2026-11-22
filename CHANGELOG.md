@@ -5,6 +5,9 @@ versioning: [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+- With `inline-comments` on, the prompt now states that every risk needs `note` as well as `path` and `quote`; a 7B model (qwen2.5) had dropped `note` and failed the schema check. Found in a trial with a real model.
+
 ## [1.3.0] - 2026-11-22
 
 ### Added

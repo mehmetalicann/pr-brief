@@ -49,10 +49,12 @@ Return a JSON object with exactly these keys:
 - "missing_tests": array of at most 5 strings (tests that appear to be missing)."""
 
 _INLINE_TASK = """
-- Each risk may also carry "path" and "quote": "path" is the file path exactly as in the diff \
-header; "quote" is ONE line copied exactly, character for character, from that file's added (+) \
-or unchanged lines in the diff (at least 12 characters, without the leading +, - or space). Use "" \
-for both when the risk is not about one specific line. Never invent a quote."""
+- Every risk object must have all of "level", "area", "note", "path" and "quote". "note" is always \
+required: one sentence on what is wrong.
+- "path" is the file path exactly as in the diff header; "quote" is ONE line copied exactly, \
+character for character, from that file's added (+) or unchanged lines in the diff (at least 12 \
+characters, without the leading +, - or space). Use "" for "path" and "quote" when the risk is not \
+about one specific line. Never invent a quote."""
 
 _CHUNK_TASK = """\
 You are shown one part of a large diff. Return a JSON object with exactly one key:
