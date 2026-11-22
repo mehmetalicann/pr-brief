@@ -13,7 +13,14 @@ move it to the log below with the date.
 3. **`v1.2.0` is prepared, tag not cut** (usage report, presets, `/pr-brief refresh`). The refresh trial passed. Needs the maintainer to sign the tag.
 4. **Item 1 knowingly left open** (no paid key for now), see above.
 
-## 2026-11-20 - WHERE WE STOPPED (read this first in a new session)
+## 2026-11-22 - Review fixes committed, Dependabot PRs merged, SHA pinning enforced
+- Review fixes committed and pushed (`7791e3e` code and tests, `9ece50e` docs). The pre-commit gitleaks hook flagged three fake test values in `tests/unit/test_redact.py`; they carry an inline `# gitleaks:allow (fake test value)` (no change to `.gitleaks.toml`).
+- Dependabot PRs #6 and #7 (`codeql-action` 4.39.1 to 4.39.3) squash-merged; the new SHA was checked against the `v4.39.3` tag before merging. CI on `main` green.
+- Repository setting `sha_pinning_required` switched on (private repo; all `uses:` are SHA-pinned, only `./` local uses remain). CI stayed green afterwards.
+- Pre-flight for going public re-checked: only noreply author addresses, no personal paths or e-mail in files, gitleaks clean, `v1` and `v1.0.0` tags on the remote. Branch protection and rulesets are still missing (not available on the private free plan); set them from `docs/going-public.md` before the visibility switch.
+- Still open: signed tag `v1.2.0` (maintainer), Marketplace walk-through, public-repository settings, optional live OpenAI/Anthropic check, Phase 7 leftovers.
+
+## 2026-11-20 - WHERE WE STOPPED (superseded by the 2026-11-22 entry above for items 1 and Dependabot)
 - **Uncommitted work on `main`** (HEAD `4fc95af`, pushed): the security review fixes and docs of the entry below (redaction patterns, sanitiser clip, backtracking-free glob matcher, nesting errors, COLLABORATOR wording, CHANGELOG `[1.2.0]` Security section, `docs/security-model.md`, this log). `just check` passed with all of it (856 tests, coverage 98.4%, release gate for `v1.2.0` OK). It waits for the maintainer's "commit and push".
 - **Next steps, in order:** (1) commit and push the review fixes; (2) the maintainer signs and pushes `v1.2.0` (`! git tag -s v1.2.0 -m "v1.2.0"`, then `git push origin v1.2.0`; `release.yml` publishes and moves `v1`); (3) Marketplace walk-through (`docs/marketplace.md`), before going public; (4) optional: live OpenAI/Anthropic check, going public (`docs/going-public.md`), Phase 7 leftovers (inline review comments need a design talk; plugin entry-points not recommended).
 - **Nothing was cut off mid-way.** No trial or test was interrupted and no run is pending: sandbox PR #4 and #5, their branches, the temporary trial workflow and the `LLM_API_KEY` repository secret are all deleted (checked: 0 secrets, 0 open PRs, no `v1.2.0` tag yet). Last full runs all passed.

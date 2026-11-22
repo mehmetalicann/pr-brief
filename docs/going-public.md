@@ -61,6 +61,11 @@ gh api -X PUT repos/OWNER/REPO/actions/permissions/fork-pr-contributor-approval 
 gh api -X PUT repos/OWNER/REPO/actions/permissions/workflow \
   -f default_workflow_permissions=read -F can_approve_pull_request_reviews=false
 
+# Workflows may only use actions pinned to a full commit SHA (already switched on, 2026-11-22;
+# all workflows in this repository are pinned, only local `./` uses remain)
+gh api -X PUT repos/OWNER/REPO/actions/permissions \
+  -F enabled=true -f allowed_actions=all -F sha_pinning_required=true
+
 # Unused features off
 gh repo edit OWNER/REPO --enable-wiki=false --enable-projects=false
 ```
