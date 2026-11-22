@@ -110,7 +110,14 @@ def sanitize_brief(brief: BriefOutput, *, repo: str | None) -> BriefOutput:
         body=body or None,
     )
     risks = [
-        Risk.model_construct(level=r.level, area=inline(r.area, 80), note=inline(r.note, 300))
+        Risk.model_construct(
+            level=r.level,
+            area=inline(r.area, 80),
+            note=inline(r.note, 300),
+            # Anchors are never rendered; they are only matched against the diff. Keep, clip.
+            path=r.path[:300],
+            quote=r.quote[:300],
+        )
         for r in brief.risks
     ]
     return brief.model_copy(

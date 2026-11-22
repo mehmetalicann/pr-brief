@@ -40,6 +40,11 @@ include-drafts: false
 # a brief on a version bump costs money for little value. Set to false to process them.
 skip-bots: true
 
+# Also post up to 5 review comments on the diff lines that medium and high risks are about.
+# Off by default. Needs `pull-requests: write`; pull requests that are too large for one model
+# call (chunked) get none. See docs/inline-comments.md.
+inline-comments: false
+
 # Print the comment to the job log and summary instead of posting it. Good for a first trial.
 dry-run: false
 

@@ -30,6 +30,7 @@ input with a repository secret.
 | `ignore` | list of globs (a file) or lines (an input) | none | Extra paths to skip. |
 | `include-drafts` | `true`, `false` | `false` | Also process draft PRs. |
 | `skip-bots` | `true`, `false` | `true` | Skip PRs opened by bots such as Dependabot or Renovate. |
+| `inline-comments` | `true`, `false` | `false` | Also post up to 5 review comments on the diff lines that medium and high risks are about. See [inline-comments.md](inline-comments.md). |
 | `allow-fork-target` | `true`, `false` | `false` | Action input only. Also process fork PRs under `pull_request_target`; unsafe, see the [security model](security-model.md). |
 | `dry-run` | `true`, `false` | `false` | Print to the job log and summary, post nothing. |
 | `fail-on-error` | `true`, `false` | `false` | Fail the job on errors. |

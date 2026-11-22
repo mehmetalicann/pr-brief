@@ -38,6 +38,7 @@ def cache_key(
     max_input_tokens: int,
     max_output_tokens: int,
     ignore: Sequence[str],
+    inline: bool = False,
 ) -> str:
     parts = [
         diff,
@@ -53,6 +54,8 @@ def cache_key(
         max_output_tokens,
         list(ignore),
     ]
+    if inline:  # briefs made with quotes differ; every other key stays as it was
+        parts.append("inline")
     encoded = json.dumps(parts, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
     return hashlib.sha256(encoded).hexdigest()
 

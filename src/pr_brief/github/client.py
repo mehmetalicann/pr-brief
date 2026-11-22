@@ -1,8 +1,10 @@
 """Minimal GitHub REST client (spec FR2, L1, L5, L6).
 
-Only read endpoints for the pull request plus issue-comment writes. The token travels in the
-`Authorization` header only; errors never include headers, bodies or exception texts; redirects
-are never followed; responses are size-capped; the PR's code is never fetched or executed.
+Read endpoints for the pull request, issue-comment writes and, only when `inline-comments` is on,
+review comments (one COMMENT review; the bot's own marked comments may be deleted). The token
+travels in the `Authorization` header only; errors never include headers, bodies or exception
+texts; redirects are never followed; responses are size-capped; the PR's code is never fetched or
+executed.
 """
 
 from __future__ import annotations
@@ -57,6 +59,7 @@ class PullRequest:
     head_ref: str
     is_fork: bool
     author_is_bot: bool = False
+    head_sha: str = ""
 
 
 def check_repo(repo: str) -> str:
@@ -113,6 +116,7 @@ class GitHubClient:
                 head_ref=str(head["ref"]),
                 is_fork=not isinstance(head_repo, str) or head_repo.lower() != base_repo.lower(),
                 author_is_bot=_is_bot(data.get("user")),
+                head_sha=str(head.get("sha") or ""),
             )
         except (KeyError, TypeError, AttributeError, ValueError):
             raise _unexpected() from None
@@ -152,6 +156,19 @@ class GitHubClient:
             raise _unexpected()
         return data
 
+    def list_review_comments(self, repo: str, number: int, *, page: int) -> list[Any]:
+        """Comments on the diff (not on the conversation), 100 per page."""
+        data = self._json(
+            self._request(
+                "GET",
+                f"/repos/{check_repo(repo)}/pulls/{int(number)}/comments",
+                params={"per_page": 100, "page": page},
+            )
+        )
+        if not isinstance(data, list):
+            raise _unexpected()
+        return data
+
     # -- writes --------------------------------------------------------------------------------
 
     def create_issue_comment(self, repo: str, number: int, body: str) -> int:
@@ -173,6 +190,19 @@ class GitHubClient:
             )
         )
         return _comment_id(data)
+
+    def create_review(
+        self, repo: str, number: int, *, commit_id: str, comments: list[dict[str, Any]]
+    ) -> None:
+        """One review of type COMMENT (it never approves or requests changes) with diff comments."""
+        self._request(
+            "POST",
+            f"/repos/{check_repo(repo)}/pulls/{int(number)}/reviews",
+            payload={"commit_id": commit_id, "event": "COMMENT", "comments": comments},
+        )
+
+    def delete_review_comment(self, repo: str, comment_id: int) -> None:
+        self._request("DELETE", f"/repos/{check_repo(repo)}/pulls/comments/{int(comment_id)}")
 
     # -- plumbing ------------------------------------------------------------------------------
 

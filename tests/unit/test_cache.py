@@ -57,6 +57,11 @@ def test_every_input_changes_the_key() -> None:
         assert key(**{name: value}) != base, name
 
 
+def test_the_inline_flag_changes_the_key_but_off_keeps_the_old_key() -> None:
+    assert key(inline=True) != key()
+    assert key(inline=False) == key()
+
+
 def test_key_has_no_field_boundary_ambiguity() -> None:
     assert key(title="ab", body="c") != key(title="a", body="bc")
 

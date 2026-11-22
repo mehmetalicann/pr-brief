@@ -37,6 +37,7 @@ in the last column is what applies when neither sets it.
 | `ignore` | Extra globs to skip, one per line | none |
 | `include-drafts` | Also process draft PRs | `false` |
 | `skip-bots` | Skip PRs opened by bots (Dependabot, Renovate, ...) | `true` |
+| `inline-comments` | Also post up to 5 review comments on diff lines (needs `pull-requests: write`; see [inline-comments.md](inline-comments.md)) | `false` |
 | `allow-fork-target` | Also process fork PRs under `pull_request_target`. Unsafe: that event gives fork PRs secrets and a write token. Read the [security model](security-model.md) first. | `false` |
 | `dry-run` | Print the comment to the log and the job summary, post nothing | `false` |
 | `fail-on-error` | Fail the job on errors (default: fail soft, exit 0) | `false` |

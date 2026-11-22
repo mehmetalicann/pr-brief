@@ -37,6 +37,10 @@ class FakeGitHub:
             "head": {"ref": "feature", "sha": HEAD_SHA, "repo": {"full_name": "octo/demo"}},
         }
         self.write_status = 201  # set to 403 to simulate a read-only token
+        self.review_comments: list[dict[str, Any]] = []  # inline (diff) comments
+        self.reviews: list[dict[str, Any]] = []  # bodies of the review POSTs
+        self.review_status = 200  # set to 422 to simulate a rejected review
+        self.delete_status = 204
         self._next_id = 1000
 
     def transport(self) -> httpx.MockTransport:
@@ -46,6 +50,20 @@ class FakeGitHub:
         self._next_id += 1
         comment = {"id": self._next_id, "body": body, "user": {"login": login}}
         self.comments.append(comment)
+        return comment
+
+    def add_review_comment(
+        self, path: str, line: int | None, body: str, login: str = BOT
+    ) -> dict[str, Any]:
+        self._next_id += 1
+        comment = {
+            "id": self._next_id,
+            "path": path,
+            "line": line,
+            "body": body,
+            "user": {"login": login},
+        }
+        self.review_comments.append(comment)
         return comment
 
     def calls(self, method: str) -> list[httpx.Request]:
@@ -74,6 +92,24 @@ class FakeGitHub:
                 return httpx.Response(
                     201, json=self.add_comment(json.loads(request.content)["body"])
                 )
+        if path == f"{base}/pulls/{self.number}/comments" and request.method == "GET":
+            page = int(request.url.params.get("page", "1"))
+            size = int(request.url.params.get("per_page", "30"))
+            return httpx.Response(200, json=self.review_comments[(page - 1) * size : page * size])
+        if path == f"{base}/pulls/{self.number}/reviews" and request.method == "POST":
+            body = json.loads(request.content)
+            self.reviews.append(body)
+            if self.review_status >= 400:
+                return httpx.Response(self.review_status, json={"message": "Unprocessable"})
+            for item in body.get("comments", []):
+                self.add_review_comment(item["path"], item["line"], item["body"])
+            return httpx.Response(200, json={"id": 1})
+        if request.method == "DELETE" and path.startswith(f"{base}/pulls/comments/"):
+            if self.delete_status >= 400:
+                return httpx.Response(self.delete_status, json={"message": "nope"})
+            cid = int(path.rsplit("/", 1)[1])
+            self.review_comments = [c for c in self.review_comments if c["id"] != cid]
+            return httpx.Response(204)
         if request.method == "PATCH" and path.startswith(f"{base}/issues/comments/"):
             if self.write_status >= 400:
                 return httpx.Response(self.write_status, json={"message": "forbidden"})

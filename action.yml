@@ -52,6 +52,10 @@ inputs:
     description: "Skip pull requests opened by bots such as Dependabot (default: true)."
     required: false
     default: ""
+  inline-comments:
+    description: "Also post up to 5 review comments on the diff lines that medium and high risks are about (default: false). Needs pull-requests: write; large pull requests that are split into chunks get none."
+    required: false
+    default: ""
   price-input-per-million:
     description: "Your provider's price in USD per million input tokens; with the output price it adds a cost estimate to the job summary."
     required: false
@@ -136,6 +140,7 @@ runs:
         PR_BRIEF_INCLUDE_DRAFTS: ${{ inputs.include-drafts }}
         PR_BRIEF_PRESET: ${{ inputs.preset }}
         PR_BRIEF_SKIP_BOTS: ${{ inputs.skip-bots }}
+        PR_BRIEF_INLINE_COMMENTS: ${{ inputs.inline-comments }}
         PR_BRIEF_PRICE_INPUT_PER_MILLION: ${{ inputs.price-input-per-million }}
         PR_BRIEF_PRICE_OUTPUT_PER_MILLION: ${{ inputs.price-output-per-million }}
         PR_BRIEF_ALLOW_FORK_TARGET: ${{ inputs.allow-fork-target }}

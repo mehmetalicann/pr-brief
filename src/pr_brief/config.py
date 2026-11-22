@@ -48,6 +48,7 @@ class Settings(BaseModel):
     ignore: list[str] = Field(default_factory=list)
     include_drafts: bool = False
     skip_bots: bool = True
+    inline_comments: bool = False  # opt-in: also comment on diff lines (single-call briefs only)
     dry_run: bool = False
     fail_on_error: bool = False
     config_path: str = DEFAULT_CONFIG_PATH

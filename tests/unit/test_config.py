@@ -18,6 +18,7 @@ def test_defaults_match_the_spec(tmp_path: Path) -> None:
     assert s.ignore == []
     assert (s.include_drafts, s.dry_run, s.fail_on_error, s.cache) == (False, False, False, True)
     assert s.skip_bots is True
+    assert s.inline_comments is False
     assert s.config_path == ".pr-brief.yml"
     assert s.timeout_seconds == 60
     assert s.api_key is None
@@ -273,3 +274,14 @@ def test_deeply_nested_yaml_is_a_config_error_not_a_crash(tmp_path: Path) -> Non
     write(tmp_path, "provider: mock\nx: " + "[" * 5000 + "]" * 5000 + "\n")
     with pytest.raises(ConfigError, match="YAML"):
         load_settings({}, base_dir=tmp_path)
+
+
+def test_inline_comments_is_opt_in_and_comes_from_the_environment(tmp_path: Path) -> None:
+    env = {"PR_BRIEF_PROVIDER": "mock", "PR_BRIEF_INLINE_COMMENTS": "true"}
+    assert load_settings(env, base_dir=tmp_path).inline_comments is True
+    assert load_settings({"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path).inline_comments is False
+
+
+def test_inline_comments_can_be_set_in_the_config_file(tmp_path: Path) -> None:
+    (tmp_path / ".pr-brief.yml").write_text("inline-comments: true\n", encoding="utf-8")
+    assert load_settings({"PR_BRIEF_PROVIDER": "mock"}, base_dir=tmp_path).inline_comments

@@ -6,7 +6,7 @@ import json
 import re
 from typing import Literal, TypeVar
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from pr_brief.errors import SchemaError
 
@@ -23,10 +23,27 @@ class CommitMessage(BaseModel):
     body: str | None = None
 
 
+MAX_LOCATION_CHARS = 300
+
+
+def _clip_location(value: object) -> str:
+    """`path` / `quote` are only ever matched against the diff: tolerate null, clip, never fail."""
+    return value[:MAX_LOCATION_CHARS] if isinstance(value, str) else ""
+
+
 class Risk(BaseModel):
     level: RiskLevel
     area: str
     note: str
+    # Optional anchor for an inline comment: the file and one line copied from the diff. Never
+    # rendered; `core.inline` only uses them to find a line number in the real diff.
+    path: str = ""
+    quote: str = ""
+
+    @field_validator("path", "quote", mode="before")
+    @classmethod
+    def _clip(cls, value: object) -> str:
+        return _clip_location(value)
 
 
 class BriefOutput(BaseModel):

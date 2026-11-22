@@ -22,6 +22,7 @@ from pr_brief.errors import PrBriefError
 from pr_brief.github.client import DEFAULT_API_URL, GitHubClient
 from pr_brief.github.comments import upsert_comment
 from pr_brief.github.context import load_event, skip_reason
+from pr_brief.github.inline import sync_inline_comments
 from pr_brief.logging import get_logger, mask, register_secrets
 from pr_brief.providers.base import Provider
 from pr_brief.providers.registry import get_provider
@@ -90,12 +91,19 @@ def run_github(
             repo=ctx.repo,
             cache=cache,
         )
+        inline_outcome: str | None = None
         if settings.dry_run:
             print(result.markdown)
             outcome = "dry run (nothing was posted)"
+            if settings.inline_comments:
+                inline_outcome = f"{len(result.inline)} planned (dry run, nothing posted)"
         else:
             outcome = upsert_comment(client, ctx.repo, ctx.number, result.markdown).action
-        summary = _success_summary(result, outcome, settings, clock() - started, ctx.refresh)
+            if settings.inline_comments:
+                inline_outcome = _post_inline(client, ctx.repo, ctx.number, pull.head_sha, result)
+        summary = _success_summary(
+            result, outcome, settings, clock() - started, ctx.refresh, inline_outcome
+        )
         _write_summary(env, summary)
         return 0
     except PrBriefError as exc:
@@ -108,6 +116,18 @@ def run_github(
     return 1 if fail_hard else 0
 
 
+def _post_inline(
+    client: GitHubClient, repo: str, number: int, head_sha: str, result: RunResult
+) -> str:
+    """Inline comments are a bonus: a failure is logged and never fails the run or the summary."""
+    try:
+        sync = sync_inline_comments(client, repo, number, head_sha=head_sha, planned=result.inline)
+    except PrBriefError as exc:
+        get_logger().warning("inline comments were not posted: %s", mask(exc.user_message()))
+        return "not posted (see the log)"
+    return f"{sync.posted} posted · {sync.kept} kept · {sync.removed} removed"
+
+
 def _skipped(env: Mapping[str, str], reason: str) -> int:
     get_logger().info("skipped: %s", reason)
     _write_summary(env, f"### PR Brief\n\nSkipped: {reason}.\n")
@@ -115,7 +135,12 @@ def _skipped(env: Mapping[str, str], reason: str) -> int:
 
 
 def _success_summary(
-    result: RunResult, outcome: str, settings: Settings, seconds: float, refresh: bool = False
+    result: RunResult,
+    outcome: str,
+    settings: Settings,
+    seconds: float,
+    refresh: bool = False,
+    inline: str | None = None,
 ) -> str:
     lines = ["### PR Brief", "", f"- Result: **{outcome}**"]
     if refresh:
@@ -136,6 +161,8 @@ def _success_summary(
             lines.append(
                 f"- Estimated cost: ${cost:.4f} (from your own prices; your provider's bill counts)"
             )
+    if inline is not None:
+        lines.append(f"- Inline comments: {inline}")
     lines.append(f"- Duration: {seconds:.1f} s")
     if settings.dry_run:
         lines += [

@@ -17,6 +17,7 @@ from pr_brief.config import Settings, load_settings
 from pr_brief.core.chunker import ChunkPlan, plan_chunks
 from pr_brief.core.diff import FileDiff, parse_diff
 from pr_brief.core.filters import filter_files
+from pr_brief.core.inline import InlineComment, plan_inline
 from pr_brief.core.prompts import (
     PROMPT_VERSION,
     RESERVED_TOKENS,
@@ -44,6 +45,7 @@ M = TypeVar("M", bound=BaseModel)
 class RunResult:
     markdown: str
     stats: RunStats | None  # None when nothing reviewable remained
+    inline: tuple[InlineComment, ...] = ()  # only with `inline-comments`; already sanitised
 
 
 @dataclass
@@ -124,8 +126,9 @@ def run_detailed(
         redactions=redactions,
         cached=cached,
     )
+    inline = plan_inline(brief, filtered.kept) if settings.inline_comments else ()
     # Last line of defence: nothing registered as a secret can ever be posted.
-    return RunResult(mask(render_comment(brief, stats, language=lang)), stats)
+    return RunResult(mask(render_comment(brief, stats, language=lang)), stats, inline)
 
 
 def _generate(
@@ -137,8 +140,10 @@ def _generate(
     usage: _Usage,
 ) -> BriefOutput:
     lang = settings.language
+    # Quotes need the diff itself: the reduce step of a chunked pull request only sees summaries.
+    inline = settings.inline_comments and len(plan.chunks) == 1
     if len(plan.chunks) == 1:
-        prompt = build_brief_prompt(meta, plan.chunks[0].text, language=lang)
+        prompt = build_brief_prompt(meta, plan.chunks[0].text, language=lang, inline=inline)
     else:
         summaries: list[str] = []
         for i, chunk in enumerate(plan.chunks, start=1):
@@ -157,7 +162,7 @@ def _generate(
             language=lang,
             skipped_note=note,
         )
-    return _complete(provider, prompt, BriefOutput, settings, usage, "brief")
+    return _complete(provider, prompt, BriefOutput, settings, usage, "brief", inline=inline)
 
 
 def _cache_key(
@@ -176,6 +181,7 @@ def _cache_key(
         max_input_tokens=settings.max_input_tokens,
         max_output_tokens=settings.max_output_tokens,
         ignore=settings.ignore,
+        inline=settings.inline_comments,
     )
 
 
@@ -204,6 +210,8 @@ def _complete(
     settings: Settings,
     usage: _Usage,
     kind: str,
+    *,
+    inline: bool = False,
 ) -> M:
     """Call the provider; on invalid output make exactly one repair attempt."""
     schema = model.model_json_schema()
@@ -227,6 +235,7 @@ def _complete(
             first.message,
             language=settings.language,
             kind="chunk" if kind == "chunk" else "brief",
+            inline=inline,
         )
     return parse_model(model, call(repair))
 

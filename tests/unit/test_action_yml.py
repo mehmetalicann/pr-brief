@@ -22,6 +22,7 @@ SPEC_INPUTS = {
     "ignore",
     "include-drafts",
     "skip-bots",
+    "inline-comments",
     "preset",
     "price-input-per-million",
     "price-output-per-million",

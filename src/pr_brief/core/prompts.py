@@ -48,6 +48,12 @@ Return a JSON object with exactly these keys:
 - "review_checklist": array of at most 8 strings (what a reviewer should check).
 - "missing_tests": array of at most 5 strings (tests that appear to be missing)."""
 
+_INLINE_TASK = """
+- Each risk may also carry "path" and "quote": "path" is the file path exactly as in the diff \
+header; "quote" is ONE line copied exactly, character for character, from that file's added (+) \
+or unchanged lines in the diff (at least 12 characters, without the leading +, - or space). Use "" \
+for both when the risk is not about one specific line. Never invent a quote."""
+
 _CHUNK_TASK = """\
 You are shown one part of a large diff. Return a JSON object with exactly one key:
 - "summary": string, at most 400 characters, describing what this part changes and any risk."""
@@ -73,11 +79,17 @@ def new_delimiter_id() -> str:
 
 
 def build_brief_prompt(
-    meta: PRMeta, diff_text: str, *, language: Language, delimiter_id: str | None = None
+    meta: PRMeta,
+    diff_text: str,
+    *,
+    language: Language,
+    delimiter_id: str | None = None,
+    inline: bool = False,
 ) -> Prompt:
+    """`inline` adds the instruction to quote one diff line per risk (for inline comments)."""
     did = delimiter_id or new_delimiter_id()
     data = f"{_meta_text(meta)}\n\n[Diff]\n{diff_text}"
-    return Prompt(_system(did, _BRIEF_TASK, language), _wrap("Write the brief.", data, did))
+    return Prompt(_system(did, _brief_task(inline), language), _wrap("Write the brief.", data, did))
 
 
 def build_chunk_prompt(
@@ -125,11 +137,12 @@ def build_repair_prompt(
     language: Language,
     kind: Literal["brief", "chunk"] = "brief",
     delimiter_id: str | None = None,
+    inline: bool = False,
 ) -> Prompt:
     did = delimiter_id or new_delimiter_id()
     data = f"[Previous output]\n{previous_output}"
     return Prompt(
-        _system(did, _BRIEF_TASK if kind == "brief" else _CHUNK_TASK, language),
+        _system(did, _brief_task(inline) if kind == "brief" else _CHUNK_TASK, language),
         _wrap(
             f"Your previous reply was rejected: {clean_untrusted(error)}\n"
             "Return a corrected JSON object.",
@@ -137,6 +150,10 @@ def build_repair_prompt(
             did,
         ),
     )
+
+
+def _brief_task(inline: bool) -> str:
+    return _BRIEF_TASK + _INLINE_TASK if inline else _BRIEF_TASK
 
 
 def _system(did: str, task: str, language: Language) -> str:
